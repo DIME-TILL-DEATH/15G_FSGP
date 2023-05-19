@@ -2,7 +2,7 @@
 * File Name          : main.c
 * Author             : Dmitriy Kostyuchik
 
-* Description        : Main program body.
+* Description        : Main program body
 *******************************************/
 
 #include "string.h"
@@ -66,7 +66,7 @@ void WCHNET_UdpServerRecv(struct _SCOK_INF *socinf, u32 ipaddr, u16 port, u8 *bu
 {
     u8 ip_addr[4], i;
 
-    printf("Remote IP:");
+    printf("Remote IP: ");
     for (i = 0; i < 4; i++) {
         ip_addr[i] = ipaddr & 0xff;
         printf("%d ", ip_addr[i]);
@@ -79,16 +79,8 @@ void WCHNET_UdpServerRecv(struct _SCOK_INF *socinf, u32 ipaddr, u16 port, u8 *bu
     WCHNET_SocketUdpSendTo(socinf->SockIndex, buf, &len, ip_addr, port);
 }
 
-/*********************************************************************
- * @fn      WCHNET_CreateUdpSocket
- *
- * @brief   Create UDP Socket
- *
- * @return  none
- */
 void WCHNET_CreateUdpSocket(void)
 {
-    u8 i;
     SOCK_INF TmpSocketInf;
 
     memset((void *) &TmpSocketInf, 0, sizeof(SOCK_INF));
@@ -99,112 +91,32 @@ void WCHNET_CreateUdpSocket(void)
     TmpSocketInf.RecvStartPoint = (u32) SocketRecvBuf[SocketId];
     TmpSocketInf.RecvBufLen = UDP_RECE_BUF_LEN;
     TmpSocketInf.AppCallBack = WCHNET_UdpServerRecv;
-    i = WCHNET_SocketCreat(&SocketId, &TmpSocketInf);
+    u8 result = WCHNET_SocketCreat(&SocketId, &TmpSocketInf);
     printf("WCHNET_SocketCreat %d\r\n", SocketId);
-    mStopIfError(i);
-}
-
-/*********************************************************************
- * @fn      WCHNET_DataLoopback
- *
- * @brief   Data loopback function.
- *
- * @param   id - socket id.
- *
- * @return  none
- */
-void WCHNET_DataLoopback(u8 id)
-{
-    printf("Data loopback\r\n");
-#if 1
-    u8 i;
-    u32 len;
-    u32 endAddr = SocketInf[id].RecvStartPoint + SocketInf[id].RecvBufLen;       //Receive buffer end address
-
-    if ((SocketInf[id].RecvReadPoint + SocketInf[id].RecvRemLen) > endAddr) {    //Calculate the length of the received data
-        len = endAddr - SocketInf[id].RecvReadPoint;
-    }
-    else {
-        len = SocketInf[id].RecvRemLen;
-    }
-
-    i = WCHNET_SocketSend(id, (u8 *) SocketInf[id].RecvReadPoint, &len);        //send data
-
-    if (i == WCHNET_ERR_SUCCESS) {
-        WCHNET_SocketRecv(id, NULL, &len);                                      //Clear sent data
-    }
-#else
-    u32 len, totallen;
-    u8 *p = MyBuf;
-
-    len = WCHNET_SocketRecvLen(id, NULL);                                //query length
-    printf("Receive Len = %02x\n", len);
-    totallen = len;
-    WCHNET_SocketRecv(id, MyBuf, &len);                                  //Read the data of the receive buffer into MyBuf
-    while(1){
-        len = totallen;
-        WCHNET_SocketSend(id, p, &len);                                  //Send the data
-        totallen -= len;                                                 //Subtract the sent length from the total length
-        p += len;                                                        //offset buffer pointer
-        if(totallen)continue;                                            //If the data is not sent, continue to send
-        break;                                                           //After sending, exit
-    }
-#endif
-}
-
-/*********************************************************************
- * @fn      WCHNET_HandleSockInt
- *
- * @brief   Socket Interrupt Handle
- *
- * @param   socketid - socket id.
- *          intstat - interrupt status
- *
- * @return  none
- */
-void WCHNET_HandleSockInt(u8 socketid, u8 intstat)
-{
-    if (intstat & SINT_STAT_RECV)                             //receive data
-    {
-//        WCHNET_DataLoopback(socketid);                        //Data loopback
-    }
+    mStopIfError(result);
 }
 
 void WCHNET_HandleGlobalInt(void)
 {
-    u8 intstat;
-    u16 i;
-    u8 socketint;
-
-    intstat = WCHNET_GetGlobalInt();                          //get global interrupt flag
-    if (intstat & GINT_STAT_UNREACH)                          //Unreachable interrupt
+    u8 intState = WCHNET_GetGlobalInt();                          //get global interrupt flag
+    if (intState & GINT_STAT_UNREACH)                          //Unreachable interrupt
     {
         printf("GINT_STAT_UNREACH\r\n");
     }
-    if (intstat & GINT_STAT_IP_CONFLI)                        //IP conflict
+    if (intState & GINT_STAT_IP_CONFLI)                        //IP conflict
     {
         printf("GINT_STAT_IP_CONFLI\r\n");
     }
-    if (intstat & GINT_STAT_PHY_CHANGE)                       //PHY status change
+    if (intState & GINT_STAT_PHY_CHANGE)                       //PHY status change
     {
-        i = WCHNET_GetPHYStatus();
-        if (i & PHY_Linked_Status)
+        u16 phyStatus = WCHNET_GetPHYStatus();
+        if (phyStatus & PHY_Linked_Status)
             printf("PHY Link Success\r\n");
-    }
-    if (intstat & GINT_STAT_SOCKET) {
-        for (i = 0; i < WCHNET_MAX_SOCKET_NUM; i++) {         //socket related interrupt
-            socketint = WCHNET_GetSocketInt(i);
-            if (socketint)
-                WCHNET_HandleSockInt(i, socketint);
-        }
     }
 }
 
 int main(void)
 {
-    u8 i;
-
-	//NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
 	SystemCoreClockUpdate();
 	Delay_Init();
 	USART_Printf_Init(115200);
@@ -216,32 +128,27 @@ int main(void)
 
     WCHNET_GetMacAddr(MACAddr);                                //get the chip MAC address
     printf("mac addr:");
-    for(i = 0; i < 6; i++)
+    for(u8 i = 0; i < 6; i++)
         printf("%x ",MACAddr[i]);
     printf("\r\n");
 
     TIM2_Init();
 
-    i = ETH_LibInit(IPAddr, GWIPAddr, IPMask, MACAddr);        //Ethernet library initialize
-    mStopIfError(i);
+    u8 result = ETH_LibInit(IPAddr, GWIPAddr, IPMask, MACAddr);        //Ethernet library initialize
+    mStopIfError(result);
 
-    if (i == WCHNET_ERR_SUCCESS)
+    if (result == WCHNET_ERR_SUCCESS)
         printf("WCHNET_LibInit Success\r\n");
 
-    for (i = 0; i < WCHNET_MAX_SOCKET_NUM; i++)
+    for (u8 i = 0; i < WCHNET_MAX_SOCKET_NUM; i++)
         WCHNET_CreateUdpSocket();
 
 	while(1)
     {
-        /*Ethernet library main task function,
-         * which needs to be called cyclically*/
         WCHNET_MainTask();
-        /*Query the Ethernet global interrupt,
-         * if there is an interrupt, call the global interrupt handler*/
         if(WCHNET_QueryGlobalInt())
         {
             WCHNET_HandleGlobalInt();
         }
 	}
 }
-
