@@ -10,6 +10,8 @@
 #include "wchnet.h"
 #include "eth_driver.h"
 
+#include "uart.h"
+
 
 #define UDP_RECE_BUF_LEN                1472
 u8 MACAddr[6];                                              //MAC address
@@ -50,6 +52,8 @@ void TIM2_Init(void)
     NVIC_EnableIRQ(TIM2_IRQn);
 }
 
+u8 frameNum = 0;
+
 /*********************************************************************
  * @fn      WCHNET_UdpServerRecv
  *
@@ -77,6 +81,10 @@ void WCHNET_UdpServerRecv(struct _SCOK_INF *socinf, u32 ipaddr, u16 port, u8 *bu
             socinf->SockIndex);
 
     WCHNET_SocketUdpSendTo(socinf->SockIndex, buf, &len, ip_addr, port);
+
+    frameNum++;
+    uart_write_data(UART_NUM1, &frameNum, 1);
+    uart_write_data(UART_NUM2, &frameNum, 1);
 }
 
 void WCHNET_CreateUdpSocket(void)
@@ -112,6 +120,8 @@ void WCHNET_HandleGlobalInt(void)
         u16 phyStatus = WCHNET_GetPHYStatus();
         if (phyStatus & PHY_Linked_Status)
             printf("PHY Link Success\r\n");
+        else
+            printf("PHY Link lost\r\n");
     }
 }
 
@@ -142,6 +152,8 @@ int main(void)
 
     for (u8 i = 0; i < WCHNET_MAX_SOCKET_NUM; i++)
         WCHNET_CreateUdpSocket();
+
+    uart_init();
 
 	while(1)
     {
