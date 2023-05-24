@@ -12,6 +12,7 @@
 
 #include "uart.h"
 
+#include "command_fifo.h"
 
 #define UDP_RECE_BUF_LEN                1472
 u8 MACAddr[6];                                              //MAC address
@@ -70,17 +71,39 @@ void WCHNET_UdpServerRecv(struct _SCOK_INF *socinf, u32 ipaddr, u16 port, u8 *bu
 {
     u8 ip_addr[4], i;
 
-    printf("Remote IP: ");
+    printf("Rm IP: ");
     for (i = 0; i < 4; i++) {
         ip_addr[i] = ipaddr & 0xff;
         printf("%d ", ip_addr[i]);
         ipaddr = ipaddr >> 8;
     }
 
-    printf("srcport = %d len = %d socketid = %d\r\n", port, len,
-            socinf->SockIndex);
+    printf("port = %d len = %d\r\n", port, len);
 
-    WCHNET_SocketUdpSendTo(socinf->SockIndex, buf, &len, ip_addr, port);
+    uint8_t data[2048] = {0};
+    memcpy(data, buf, len);
+
+    if(buf[COMMAND_FRAME_POS] == COMMAND_FRAME)
+    {
+        Command_Frame *comand_ptr = (Command_Frame *)&(data[COMMAND_DATA_POS]);
+        Command_Frame recieved_command = *comand_ptr;
+
+        convertEndians(&recieved_command);
+
+        if(comm_fifo_putdata(recieved_command))
+        {
+            data[BUFFER_SIZE_LW_POS] = COMMAND_FIFO_SIZE;
+            data[QUEUE_SIZE_LW_POS] = comm_fifo_count();
+        }
+        printf("Timestamp_lw: %X Index: %d TVRS: %d Command buffer: %d\r\n", recieved_command.timestamp_lw,
+                                                                             recieved_command.index,
+                                                                             recieved_command.TVRS,
+                                                                             comm_fifo_count());
+    }
+
+    uint32_t sentLen = 32*4;
+
+    WCHNET_SocketUdpSendTo(socinf->SockIndex, data, &sentLen, ip_addr, port);
 
     frameNum++;
     uart_write_data(UART_NUM1, &frameNum, 1);

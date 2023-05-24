@@ -22,3 +22,6 @@ encoding//User/interfaces/uart.c=GBK
 encoding//User/interfaces/uart.h=GBK
 encoding//User/main.c=GBK
 encoding//User/net_config.h=GBK
+encoding//User/protocol/command_fifo.c=GBK
+encoding//User/protocol/command_fifo.h=GBK
+encoding//User/protocol/command_frame.h=GBK
