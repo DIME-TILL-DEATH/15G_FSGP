@@ -4,6 +4,6 @@
 #include <stdint.h>
 #include <debug.h>
 
-void parse_frame(uint8_t* inData, uint32_t inLenData, uint8_t* outData, uint32_t* outLenData);
+void parseFrame(uint8_t* inData, uint32_t inLenData, uint8_t* outData, uint32_t* outLenData);
 
 #endif /* USER_PROTOCOL_FRAME_PARSER_H_ */

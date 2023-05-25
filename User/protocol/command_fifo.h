@@ -13,16 +13,14 @@
 
 #define COMMAND_FIFO_SIZE 32
 
-void init_comm_fifo();
+void CommFIFO_Init();
 
-bool comm_fifo_putdata(Command_Frame new_data);
+bool CommFIFO_PutData(Command_Frame new_data);
 // get and permanently delete next data
-Command_Frame comm_fifo_getdata();
+Command_Frame CommFIFO_GetData();
 // view next data
-Command_Frame comm_fifo_peekdata();
+Command_Frame CommFIFO_PeekData();
 
-unsigned char comm_fifo_count();
-
-void convertEndians(Command_Frame* comm);
+unsigned char CommFIFO_Count();
 
 #endif /* USER_PROTOCOL_COMMAND_FIFO_H_ */

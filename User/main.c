@@ -14,6 +14,102 @@
 #include "command_fifo.h"
 #include "frame_parser.h"
 
+void EXTI0_IRQHandler(void)  __attribute__((interrupt("WCH-Interrupt-fast")));
+void TIM3_IRQHandler(void)  __attribute__((interrupt(/*"WCH-Interrupt-fast"*/)));
+
+bool ledState=0;
+
+void INT_Init()
+{
+    EXTI_InitTypeDef EXTI_InitStructure = {0};
+
+    EXTI_InitStructure.EXTI_Line = EXTI_Line0;
+    EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
+    EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising;
+    EXTI_InitStructure.EXTI_LineCmd = ENABLE;
+
+    EXTI_Init(&EXTI_InitStructure);
+
+    NVIC_EnableIRQ(EXTI0_IRQn);
+}
+
+void PIN_Init()
+{
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_GPIOC | RCC_APB2Periph_AFIO, ENABLE);
+    GPIO_InitTypeDef  GPIO_InitStructure = {0};
+
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+    GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2 | GPIO_Pin_10 | GPIO_Pin_11;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+    GPIO_Init(GPIOC, &GPIO_InitStructure);
+}
+
+void TIM3_Init(void)
+{
+    TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure = { 0 };
+
+    RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
+
+    TIM_TimeBaseStructure.TIM_Period = SystemCoreClock;
+    TIM_TimeBaseStructure.TIM_Prescaler = 2880;
+    TIM_TimeBaseStructure.TIM_ClockDivision = 0;
+    TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+    TIM_TimeBaseInit(TIM3, &TIM_TimeBaseStructure);
+    TIM_ITConfig(TIM3, TIM_IT_Update, ENABLE);
+
+    TIM_Cmd(TIM3, ENABLE);
+    TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
+    NVIC_EnableIRQ(TIM3_IRQn);
+}
+
+void TIM3_IRQHandler()
+{
+    GPIO_WriteBit(GPIOC, GPIO_Pin_10, (ledState == 0) ? (ledState = Bit_SET) : (ledState = Bit_RESET));
+
+    if(CommFIFO_Count() == 0)
+    {
+        GPIO_WriteBit(GPIOC, GPIO_Pin_11, Bit_SET);
+    }
+    else
+    {
+        GPIO_WriteBit(GPIOC, GPIO_Pin_11, Bit_RESET);
+    }
+
+    TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
+}
+
+uint8_t bufData[4] = {1, 2, 3, 4};
+void EXTI0_IRQHandler(void)
+{
+    GPIO_WriteBit(GPIOC, GPIO_Pin_2, Bit_SET);
+    Command_Frame actualComm = CommFIFO_GetData();
+
+//    UART_WriteData(UART_NUM1, &actualComm.index, 4);
+//    UART_WriteData(UART_NUM2, &actualComm.TVRS, 4);
+
+    bufData[0]++;
+    bufData[1]++;
+    bufData[2]++;
+    bufData[3]++;
+
+    UART_WriteData(UART_NUM1, bufData, 4);
+    UART_WriteData(UART_NUM2, bufData, 4);
+
+//    UART_WriteByte(UART_NUM1, actualComm.TVRS&0x000F);
+//    UART_WriteByte(UART_NUM2, actualComm.TVRS&0x000F);
+
+    GPIO_WriteBit(GPIOC, GPIO_Pin_2, Bit_RESET);
+
+    EXTI_ClearITPendingBit(EXTI_Line0);
+    printf("INP recieved. Commands left in buffer: %d\r\n", CommFIFO_Count());
+    printf("RX UART2: %X DMA tx: %d DMA rx: %d\r\n", USART_ReceiveData(USART2), DMA1_Channel7->CNTR, DMA1_Channel6->CNTR);
+    printf("RX UART3: %X DMA tx: %d DMA rx: %d\r\n", USART_ReceiveData(USART3), DMA1_Channel2->CNTR, DMA1_Channel3->CNTR);
+}
+
 int main(void)
 {
 	SystemCoreClockUpdate();
@@ -24,8 +120,11 @@ int main(void)
 	printf("SystemClk: %d\r\n",SystemCoreClock);
 	printf( "ChipID: %08x\r\n", DBGMCU_GetCHIPID() );
 
-	ETHERNET_Init(parse_frame);
-    uart_init();
+	PIN_Init();
+	ETHERNET_Init(parseFrame);
+    UART_Init();
+    TIM3_Init();
+    INT_Init();
 
 	while(1)
     {

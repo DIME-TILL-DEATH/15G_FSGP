@@ -13,8 +13,9 @@ typedef enum
     UART_NUM2
 }UART_Type;
 
-void uart_init(void);
-void uart_write_data(UART_Type uartType, uint8_t* data_ptr, uint16_t len);
+void UART_Init(void);
+void UART_WriteData(UART_Type uartType, uint8_t* data_ptr, uint16_t len);
+void UART_WriteByte(UART_Type uartType, uint8_t data);
 
 #ifdef __cplusplus
 }

@@ -14,7 +14,9 @@ u8 txBuffer2[UART_BUFFER_SIZE] = {0};
 u8 rxBuffer1[UART_BUFFER_SIZE] = {0};
 u8 rxBuffer2[UART_BUFFER_SIZE] = {0};
 
-void DMA_for_uart_init()
+void DMA1_Channel6_IRQHandler() __attribute__((interrupt(/*"WCH-Interrupt-fast"*/)));
+
+void UART_DMA_Init()
 {
     DMA_InitTypeDef DMA_InitStructure = {0};
     RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1, ENABLE);
@@ -42,6 +44,9 @@ void DMA_for_uart_init()
     DMA_InitStructure.DMA_BufferSize = UART_BUFFER_SIZE;
     DMA_Init(DMA1_Channel6, &DMA_InitStructure);
 
+    DMA_ITConfig(DMA1_Channel6, DMA_IT_TC, ENABLE);
+    NVIC_EnableIRQ(DMA1_Channel6_IRQn);
+
     DMA_DeInit(DMA1_Channel2);
     DMA_InitStructure.DMA_PeripheralBaseAddr = (u32)(&USART3->DATAR);
     DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t)txBuffer2;
@@ -57,9 +62,9 @@ void DMA_for_uart_init()
     DMA_Init(DMA1_Channel3, &DMA_InitStructure);
 }
 
-void uart_init(void)
+void UART_Init(void)
 {
-    DMA_for_uart_init();
+    UART_DMA_Init();
 
     GPIO_InitTypeDef  GPIO_InitStructure = {0};
     USART_InitTypeDef USART_InitStructure = {0};
@@ -69,7 +74,7 @@ void uart_init(void)
 
     GPIO_PinRemapConfig(GPIO_Remap_USART2 | GPIO_FullRemap_USART3, ENABLE);
 
-    /* USART2 TX-->D.5   RX-->D.6 */
+    /* USART2 remap TX-->D.5   RX-->D.6 */
     GPIO_InitStructure.GPIO_Pin = GPIO_Pin_5;
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
@@ -79,15 +84,15 @@ void uart_init(void)
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
     GPIO_Init(GPIOD, &GPIO_InitStructure);
 
-    /* USART3 TX_1-->B.18  RX_1-->B.11 */
+    /* USART3 remap TX_1-->D.8  RX_1-->D.9 */
     GPIO_InitStructure.GPIO_Pin = GPIO_Pin_8;
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
     GPIO_Init(GPIOD, &GPIO_InitStructure);
 
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_11;
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-    GPIO_Init(GPIOB, &GPIO_InitStructure);
+    GPIO_Init(GPIOD, &GPIO_InitStructure);
 
     USART_InitStructure.USART_BaudRate = 2000000;
     USART_InitStructure.USART_WordLength = USART_WordLength_8b;
@@ -99,30 +104,56 @@ void uart_init(void)
     USART_Init(USART2, &USART_InitStructure);
     USART_Init(USART3, &USART_InitStructure);
 
-    DMA_Cmd(DMA1_Channel6, ENABLE); /* USART1 Tx */
-    DMA_Cmd(DMA1_Channel7, ENABLE); /* USART1 Rx */
-    DMA_Cmd(DMA1_Channel2, ENABLE); /* USART2 Tx */
-    DMA_Cmd(DMA1_Channel3, ENABLE); /* USART2 Rx */
+    USART_DMACmd(USART2, USART_DMAReq_Tx | USART_DMAReq_Rx, ENABLE);
+    USART_DMACmd(USART3, USART_DMAReq_Tx | USART_DMAReq_Rx, ENABLE);
+
+    DMA_Cmd(DMA1_Channel6, ENABLE); /* USART2 Rx */
+    DMA_Cmd(DMA1_Channel7, ENABLE); /* USART2 Tx */
+    DMA_Cmd(DMA1_Channel2, ENABLE); /* USART3 Tx */
+    DMA_Cmd(DMA1_Channel3, ENABLE); /* USART3 Rx */
 
     USART_Cmd(USART2, ENABLE);
     USART_Cmd(USART3, ENABLE);
 }
 
-void uart_write_data(UART_Type uartType, uint8_t* data_ptr, uint16_t len)
+void UART_WriteData(UART_Type uartType, uint8_t* data_ptr, uint16_t len)
 {
     switch (uartType)
     {
         case UART_NUM1:
             DMA_SetCurrDataCounter(DMA1_Channel7, len);
+            DMA_SetCurrDataCounter(DMA1_Channel6, len);
             memcpy(txBuffer1, data_ptr, len);
-            USART_DMACmd(USART2, USART_DMAReq_Tx, ENABLE);
             break;
         case UART_NUM2:
             DMA_SetCurrDataCounter(DMA1_Channel2, len);
+            DMA_SetCurrDataCounter(DMA1_Channel3, len);
             memcpy(txBuffer2, data_ptr, len);
-            USART_DMACmd(USART3, USART_DMAReq_Tx, ENABLE);
             break;
         default:
             break;
     }
 }
+
+void UART_WriteByte(UART_Type uartType, uint8_t data)
+{
+    switch (uartType)
+    {
+        case UART_NUM1:
+            USART2->DATAR = data;
+            break;
+        case UART_NUM2:
+            USART3->DATAR = data;
+            break;
+        default:
+            break;
+    }
+}
+
+void DMA1_Channel6_IRQHandler()
+{
+    printf("rx DMA INT\r\n");
+    DMA_ClearITPendingBit(DMA1_IT_GL6);
+    //USART_ClearITPendingBit(USART2, 0xFF);
+}
+

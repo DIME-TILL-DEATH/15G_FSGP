@@ -2,6 +2,11 @@
 
 #include "ethernet.h"
 
+// Only for this file
+static void mStopIfError(u8 iError);
+void WCHNET_CreateUdpSocket(void);
+void WCHNET_UdpServerRecv(struct _SCOK_INF *socinf, u32 ipaddr, u16 port, u8 *buf, u32 len);
+
 #define UDP_REC_BUF_LEN                1472
 u8 MACAddr[6];                                              //MAC address
 u8 IPAddr[4] = { 192, 168, 104, 10 };                         //IP address
@@ -57,6 +62,30 @@ void ETHERNET_Init(parser_ptr func)
     parse_frame_func = func;
 }
 
+void mStopIfError(u8 iError)
+{
+    if (iError == WCHNET_ERR_SUCCESS)
+        return;
+    printf("Error: %02X\r\n", (u16) iError);
+}
+
+void WCHNET_CreateUdpSocket(void)
+{
+    SOCK_INF TmpSocketInf;
+
+    memset((void *) &TmpSocketInf, 0, sizeof(SOCK_INF));
+    memcpy((void *) TmpSocketInf.IPAddr, DESIP, 4);
+    TmpSocketInf.DesPort = desport;
+    TmpSocketInf.SourPort = srcport;
+    TmpSocketInf.ProtoType = PROTO_TYPE_UDP;
+    TmpSocketInf.RecvStartPoint = (u32) SocketRecvBuf[SocketId];
+    TmpSocketInf.RecvBufLen = UDP_REC_BUF_LEN;
+    TmpSocketInf.AppCallBack = WCHNET_UdpServerRecv;
+    u8 result = WCHNET_SocketCreat(&SocketId, &TmpSocketInf);
+    printf("WCHNET_SocketCreat %d\r\n", SocketId);
+    mStopIfError(result);
+}
+
 /*********************************************************************
  * @fn      WCHNET_UdpServerRecv
  *
@@ -90,23 +119,6 @@ void WCHNET_UdpServerRecv(struct _SCOK_INF *socinf, u32 ipaddr, u16 port, u8 *bu
     WCHNET_SocketUdpSendTo(socinf->SockIndex, data, &outDataLen, ip_addr, port);
 }
 
-void WCHNET_CreateUdpSocket(void)
-{
-    SOCK_INF TmpSocketInf;
-
-    memset((void *) &TmpSocketInf, 0, sizeof(SOCK_INF));
-    memcpy((void *) TmpSocketInf.IPAddr, DESIP, 4);
-    TmpSocketInf.DesPort = desport;
-    TmpSocketInf.SourPort = srcport;
-    TmpSocketInf.ProtoType = PROTO_TYPE_UDP;
-    TmpSocketInf.RecvStartPoint = (u32) SocketRecvBuf[SocketId];
-    TmpSocketInf.RecvBufLen = UDP_REC_BUF_LEN;
-    TmpSocketInf.AppCallBack = WCHNET_UdpServerRecv;
-    u8 result = WCHNET_SocketCreat(&SocketId, &TmpSocketInf);
-    printf("WCHNET_SocketCreat %d\r\n", SocketId);
-    mStopIfError(result);
-}
-
 void WCHNET_HandleGlobalInt(void)
 {
     u8 intState = WCHNET_GetGlobalInt();                       //get global interrupt flag
@@ -127,12 +139,3 @@ void WCHNET_HandleGlobalInt(void)
             printf("PHY Link lost\r\n");
     }
 }
-
-void mStopIfError(u8 iError)
-{
-    if (iError == WCHNET_ERR_SUCCESS)
-        return;
-    printf("Error: %02X\r\n", (u16) iError);
-}
-
-

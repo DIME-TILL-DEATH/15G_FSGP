@@ -10,14 +10,14 @@
 uint8_t buf_wr_index, buf_rd_index, buf_counter;
 Command_Frame command_buf[32];
 
-void init_comm_fifo()
+void CommFIFO_Init()
 {
     buf_wr_index = 0;
     buf_rd_index = 0;
     buf_counter = 0;
 }
 
-bool comm_fifo_putdata(Command_Frame new_data)
+bool CommFIFO_PutData(Command_Frame new_data)
 {
     if(buf_counter < COMMAND_FIFO_SIZE)
     {
@@ -31,7 +31,7 @@ bool comm_fifo_putdata(Command_Frame new_data)
     else return false;
 }
 
-Command_Frame comm_fifo_getdata()
+Command_Frame CommFIFO_GetData()
 {
     Command_Frame data;
 
@@ -52,18 +52,12 @@ Command_Frame comm_fifo_getdata()
     return data;
 }
 
-Command_Frame comm_fifo_peekdata()
+Command_Frame CommFIFO_PeekData()
 {
     return command_buf[buf_rd_index];
 }
 
-uint8_t comm_fifo_count()
+uint8_t CommFIFO_Count()
 {
     return buf_counter;
-}
-
-void convertEndians(Command_Frame* comm)
-{
-    comm->TVRS = __builtin_bswap32(comm->TVRS);
-    comm->index = __builtin_bswap32(comm->index);
 }
