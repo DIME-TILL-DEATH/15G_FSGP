@@ -24,10 +24,10 @@ void parseFrame(uint8_t* inData, uint32_t inDataLen, uint8_t* outData, uint32_t*
 
         *outDataLen = 32*4;
 
-        printf("Timestamp_lw: %X Index: %d TVRS: %d Command buffer: %d\r\n", recieved_command.timestamp_lw,
-                                                                             recieved_command.index,
-                                                                             recieved_command.TVRS,
-                                                                             CommFIFO_Count());
+//        printf("Timestamp_lw: %X Index: %d TVRS: %d Command buffer: %d\r\n", recieved_command.timestamp_lw,
+//                                                                             recieved_command.index,
+//                                                                             recieved_command.TVRS,
+//                                                                             CommFIFO_Count());
     }
 }
 

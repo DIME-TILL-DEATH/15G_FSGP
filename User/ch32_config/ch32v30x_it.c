@@ -68,7 +68,7 @@ void EXTI9_5_IRQHandler(void)
  */
 void ETH_IRQHandler(void)
 {
-    WCHNET_ETHIsr();
+    ETHDRV_ETHIsr();
 }
 
 /*********************************************************************
@@ -80,7 +80,7 @@ void ETH_IRQHandler(void)
  */
 void TIM2_IRQHandler(void)
 {
-    WCHNET_TimeIsr(WCHNETTIMERPERIOD);
+    ETHDRV_TimeIsr(WCHNETTIMERPERIOD);
     TIM_ClearITPendingBit(TIM2, TIM_IT_Update  );
 }
 

@@ -4,8 +4,8 @@
 
 // Only for this file
 static void mStopIfError(u8 iError);
-void WCHNET_CreateUdpSocket(void);
-void WCHNET_UdpServerRecv(struct _SCOK_INF *socinf, u32 ipaddr, u16 port, u8 *buf, u32 len);
+void ETHERNET_CreateUdpSocket(void);
+void ETHERNET_UdpServerRecv(struct _SCOK_INF *socinf, u32 ipaddr, u16 port, u8 *buf, u32 len);
 
 #define UDP_REC_BUF_LEN                1472
 u8 MACAddr[6];                                              //MAC address
@@ -42,22 +42,22 @@ void TIM2_Init(void)
 
 void ETHERNET_Init(parser_ptr func)
 {
-    WCHNET_GetMacAddr(MACAddr);                                //get the chip MAC address
+    ETHDRV_GetMacAddr(MACAddr);                                //get the chip MAC address
     printf("mac addr:");
-    for(u8 i = 0; i < 6; i++)
+    for(uint8_t i = 0; i < 6; i++)
         printf("%x ",MACAddr[i]);
     printf("\r\n");
 
     TIM2_Init();
 
-    u8 result = ETH_LibInit(IPAddr, GWIPAddr, IPMask, MACAddr);        //Ethernet library initialize
+    uint8_t result = ETHDRV_LibInit(IPAddr, GWIPAddr, IPMask, MACAddr);        //Ethernet library initialize
     mStopIfError(result);
 
     if (result == WCHNET_ERR_SUCCESS)
         printf("WCHNET_LibInit Success\r\n");
 
     for (u8 i = 0; i < WCHNET_MAX_SOCKET_NUM; i++)
-        WCHNET_CreateUdpSocket();
+        ETHERNET_CreateUdpSocket();
 
     parse_frame_func = func;
 }
@@ -69,7 +69,7 @@ void mStopIfError(u8 iError)
     printf("Error: %02X\r\n", (u16) iError);
 }
 
-void WCHNET_CreateUdpSocket(void)
+void ETHERNET_CreateUdpSocket(void)
 {
     SOCK_INF TmpSocketInf;
 
@@ -80,14 +80,14 @@ void WCHNET_CreateUdpSocket(void)
     TmpSocketInf.ProtoType = PROTO_TYPE_UDP;
     TmpSocketInf.RecvStartPoint = (u32) SocketRecvBuf[SocketId];
     TmpSocketInf.RecvBufLen = UDP_REC_BUF_LEN;
-    TmpSocketInf.AppCallBack = WCHNET_UdpServerRecv;
+    TmpSocketInf.AppCallBack = ETHERNET_UdpServerRecv;
     u8 result = WCHNET_SocketCreat(&SocketId, &TmpSocketInf);
     printf("WCHNET_SocketCreat %d\r\n", SocketId);
     mStopIfError(result);
 }
 
 /*********************************************************************
- * @fn      WCHNET_UdpServerRecv
+ * @fn      ETHERNET_UdpServerRecv
  *
  * @brief   UDP Receive data function
  *
@@ -98,9 +98,18 @@ void WCHNET_CreateUdpSocket(void)
  *          len - received data length
  * @return  none
  */
-void WCHNET_UdpServerRecv(struct _SCOK_INF *socinf, u32 ipaddr, u16 port, u8 *buf, u32 len)
+void ETHERNET_UdpServerRecv(struct _SCOK_INF *socinf, u32 ipaddr, u16 port, u8 *buf, u32 len)
 {
+    GPIO_SetBits(GPIOC, GPIO_Pin_2);
+
     u8 ip_addr[4], i;
+
+    uint32_t outDataLen;
+
+    parse_frame_func(buf, len, buf, &outDataLen);
+    GPIO_ResetBits(GPIOC, GPIO_Pin_2);
+
+    WCHNET_SocketUdpSendTo(socinf->SockIndex, buf, &outDataLen, ip_addr, port);
 
     printf("Rm IP: ");
     for (i = 0; i < 4; i++) {
@@ -110,26 +119,21 @@ void WCHNET_UdpServerRecv(struct _SCOK_INF *socinf, u32 ipaddr, u16 port, u8 *bu
     }
 
     printf("port = %d len = %d\r\n", port, len);
-
-    uint8_t data[2048] = {0};
-    uint32_t outDataLen;
-
-    parse_frame_func(buf, len, data, &outDataLen);
-
-    WCHNET_SocketUdpSendTo(socinf->SockIndex, data, &outDataLen, ip_addr, port);
 }
 
-void WCHNET_HandleGlobalInt(void)
+void ETHERNET_HandleGlobalInt(void)
 {
     u8 intState = WCHNET_GetGlobalInt();                       //get global interrupt flag
     if (intState & GINT_STAT_UNREACH)                          //Unreachable interrupt
     {
         printf("GINT_STAT_UNREACH\r\n");
     }
+
     if (intState & GINT_STAT_IP_CONFLI)                        //IP conflict
     {
         printf("GINT_STAT_IP_CONFLI\r\n");
     }
+
     if (intState & GINT_STAT_PHY_CHANGE)                       //PHY status change
     {
         u16 phyStatus = WCHNET_GetPHYStatus();

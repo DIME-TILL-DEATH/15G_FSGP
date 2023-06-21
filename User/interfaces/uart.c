@@ -9,9 +9,9 @@
 
 #define UART_BUFFER_SIZE 256
 
-u8 txBuffer1[UART_BUFFER_SIZE] = {0};
+u8 txBuffer[UART_BUFFER_SIZE] = {0};
 u8 txBuffer2[UART_BUFFER_SIZE] = {0};
-u8 rxBuffer1[UART_BUFFER_SIZE] = {0};
+u8 rxBuffer[UART_BUFFER_SIZE] = {0};
 u8 rxBuffer2[UART_BUFFER_SIZE] = {0};
 
 void DMA1_Channel6_IRQHandler() __attribute__((interrupt(/*"WCH-Interrupt-fast"*/)));
@@ -33,14 +33,14 @@ void UART_DMA_Init()
 
     DMA_DeInit(DMA1_Channel7);
     DMA_InitStructure.DMA_PeripheralBaseAddr = (u32)(&USART2->DATAR);
-    DMA_InitStructure.DMA_MemoryBaseAddr = (u32)txBuffer1;
+    DMA_InitStructure.DMA_MemoryBaseAddr = (u32)txBuffer;
     DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralDST;
     DMA_InitStructure.DMA_BufferSize = UART_BUFFER_SIZE;
     DMA_Init(DMA1_Channel7, &DMA_InitStructure);
 
     DMA_DeInit(DMA1_Channel6);
     DMA_InitStructure.DMA_PeripheralBaseAddr = (u32)(&USART2->DATAR);
-    DMA_InitStructure.DMA_MemoryBaseAddr = (u32)rxBuffer1;
+    DMA_InitStructure.DMA_MemoryBaseAddr = (u32)rxBuffer;
     DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralSRC;
     DMA_InitStructure.DMA_BufferSize = UART_BUFFER_SIZE;
     DMA_Init(DMA1_Channel6, &DMA_InitStructure);
@@ -103,7 +103,7 @@ void UART_WriteData(UART_Type uartType, uint8_t* data_ptr, uint16_t len)
         case UART_NUM1:
             DMA_SetCurrDataCounter(DMA1_Channel7, len);
             DMA_SetCurrDataCounter(DMA1_Channel6, len);
-            memcpy(txBuffer1, data_ptr, len);
+            memcpy(txBuffer, data_ptr, len);
             break;
         case UART_NUM2:
             DMA_SetCurrDataCounter(DMA1_Channel2, len);

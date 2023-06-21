@@ -23,7 +23,7 @@
 #define USE_MAC_MII                             2
 
 #ifndef PHY_MODE
-#define PHY_MODE                                USE_10M_BASE
+#define PHY_MODE                                USE_MAC_MII//USE_10M_BASE
 #endif
 
 #define PHY_ADDRESS                             1
@@ -115,16 +115,16 @@ extern ETH_DMADESCTypeDef *DMATxDescToSet;
 extern ETH_DMADESCTypeDef *DMARxDescToGet;
 extern SOCK_INF SocketInf[ ];
 
-void ETH_PHYLink( void );
-void WCHNET_ETHIsr( void );
-void WCHNET_MainTask( void );
-void ETH_LedConfiguration(void);
-void ETH_Init( uint8_t *macAddr );
-void ETH_LedLinkSet( uint8_t mode );
-void ETH_LedDataSet( uint8_t mode );
-void WCHNET_TimeIsr( uint16_t timperiod );
-void ETH_Configuration( uint8_t *macAddr );
-uint8_t ETH_LibInit( uint8_t *ip, uint8_t *gwip, uint8_t *mask, uint8_t *macaddr);
+void ETHDRV_PHYLink( void );
+void ETHDRV_ETHIsr( void );
+void ETHDRV_MainTask( void );
+void ETHDRV_LedConfiguration(void);
+void ETHDRV_Init( uint8_t *macAddr );
+void ETHDRV_LedLinkSet( uint8_t mode );
+void ETHDRV_LedDataSet( uint8_t mode );
+void ETHDRV_TimeIsr( uint16_t timperiod );
+void ETHDRV_Configuration( uint8_t *macAddr );
+uint8_t ETHDRV_LibInit( uint8_t *ip, uint8_t *gwip, uint8_t *mask, uint8_t *macaddr);
 
 #ifdef __cplusplus
 }

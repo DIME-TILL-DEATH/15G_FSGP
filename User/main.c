@@ -59,6 +59,7 @@ void PIN_Init()
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
     GPIO_Init(GPIOC, &GPIO_InitStructure);
+
 }
 
 void INT_Init()
@@ -105,16 +106,18 @@ int main(void)
 
 	PIN_Init();
 	ETHERNET_Init(parseFrame);
+
+
     UART_Init();
     TIM3_Init();
     INT_Init();
 
 	while(1)
     {
-        WCHNET_MainTask();
+        ETHDRV_MainTask();
         if(WCHNET_QueryGlobalInt())
         {
-            WCHNET_HandleGlobalInt();
+            ETHERNET_HandleGlobalInt();
         }
 	}
 }
@@ -160,4 +163,25 @@ void EXTI0_IRQHandler(void)
 
     EXTI_ClearITPendingBit(EXTI_Line0);
     printf("INP recieved. Commands left in buffer: %d\r\n", CommFIFO_Count());
+
+//    printf("MAC control reg: %x\r\n", ETH->MACCR);
+//    printf("MAC filter reg: %x\r\n", ETH->MACFFR);
+//
+//    printf("MII address reg: %x\r\n", ETH->MACMIIAR);
+//
+//    printf("CRC error frames: %d\r\n", ETH->MMCRFCECR);
+//    printf("Alignment error frames: %d\r\n", ETH->MMCRFAECR);
+//    printf("Good frames: %d\r\n", ETH->MMCRGUFCR);
+//
+//    for(uint8_t regAddr = 0; regAddr<7; regAddr++)
+//    {
+//        uint32_t regData = ETH_ReadPHYRegister(1, regAddr);
+//        printf("PHY %d, data reg0: %04x\r\n", regAddr, regData);
+//
+//        uint8_t data[2048] = {0};
+//        uint32_t outDataLen = 32;
+//        u8 IPAddr[4] = {192,168,1,10};
+//
+//        WCHNET_SocketUdpSendTo(0, data, &outDataLen, IPAddr, 8080);
+//    }
 }

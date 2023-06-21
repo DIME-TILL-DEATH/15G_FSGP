@@ -272,7 +272,7 @@ uint8_t WCHNET_GetVer(void);
  *
  * @return  None
  */
-void WCHNET_GetMacAddr(uint8_t *macaddr);
+void ETHDRV_GetMacAddr(uint8_t *macaddr);
 
 /**
  * @brief   Library parameter configuration.
@@ -310,7 +310,7 @@ void WCHNET_NetInput( void );
  *
  * @return  None
  */
-void WCHNET_ETHIsr(void);
+void ETHDRV_ETHIsr(void);
 
 /**
  * @brief   Get PHY status

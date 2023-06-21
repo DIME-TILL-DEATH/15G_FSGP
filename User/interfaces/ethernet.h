@@ -9,6 +9,6 @@
 typedef void (*parser_ptr)(uint8_t*, uint32_t, uint8_t*, uint32_t*);
 
 void ETHERNET_Init(parser_ptr func);
-void WCHNET_HandleGlobalInt();
+void ETHERNET_HandleGlobalInt();
 
 #endif /* USER_INTERFACES_ETHERNET_H_ */

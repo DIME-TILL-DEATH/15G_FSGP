@@ -71,7 +71,7 @@ u32 LastQueryPhyTime = 0;
  *
  * @return  none.
  */
-void WCHNET_GetMacAddr( uint8_t *p )
+void ETHDRV_GetMacAddr( uint8_t *p )
 {
     uint8_t i;
     uint8_t *macaddr=(uint8_t *)(ROM_CFG_USERADR_ID+5);
@@ -85,13 +85,13 @@ void WCHNET_GetMacAddr( uint8_t *p )
 }
 
 /*********************************************************************
- * @fn      WCHNET_TimeIsr
+ * @fn      ETHDRV_TimeIsr
  *
  * @brief
  *
  * @return  none.
  */
-void WCHNET_TimeIsr( uint16_t timperiod )
+void ETHDRV_TimeIsr( uint16_t timperiod )
 {
     LocalTime += timperiod;
 }
@@ -103,15 +103,17 @@ void WCHNET_TimeIsr( uint16_t timperiod )
  *
  * @return  none.
  */
-#if( PHY_MODE ==  USE_MAC_MII )
-void WCHNET_QueryPhySta(void)
+#if(PHY_MODE ==  USE_MAC_MII)
+void ETHDRV_QueryPhyState(void)
 {
     u16 phy_stat;
-    if(QUERY_STAT_FLAG){                                         /* Query the PHY link status every 1s */
+    if(QUERY_STAT_FLAG)
+    {                                         /* Query the PHY link status every 1s */
         LastQueryPhyTime = LocalTime / 1000;
-        phy_stat = ETH_ReadPHYRegister( PHY_ADDRESS, PHY_BSR );
-        if(phy_stat != LastPhyStat){
-            ETH_PHYLink();
+        phy_stat = ETH_ReadPHYRegister(PHY_ADDRESS, PHY_BSR);
+        if(phy_stat != LastPhyStat)
+        {
+            ETHDRV_PHYLink();
         }
     }
 }
@@ -223,13 +225,13 @@ void WCHNET_HandlePhyNegotiation(void)
 }
 #endif
 /*********************************************************************
- * @fn      WCHNET_MainTask
+ * @fn      ETHDRV_MainTask
  *
  * @brief   library main task function
  *
  * @return  none.
  */
-void WCHNET_MainTask(void)
+void ETHDRV_MainTask(void)
 {
     WCHNET_NetInput( );                     /* Ethernet data input */
     WCHNET_PeriodicHandle( );               /* Protocol stack time-related task processing */
@@ -239,7 +241,7 @@ void WCHNET_MainTask(void)
 #endif
 
 #if( PHY_MODE ==  USE_MAC_MII )
-    WCHNET_QueryPhySta();                   /* Query external PHY status*/
+    ETHDRV_QueryPhyState();                   /* Query external PHY status*/
 #endif
 }
 
@@ -325,7 +327,7 @@ void ETH_SetClock(void)
  *
  * @return  none
  */
-void ETH_MIIPinInit(void)
+void ETHDRV_MIIPinInit(void)
 {
     GPIO_InitTypeDef GPIO_InitStructure;
 
@@ -352,9 +354,41 @@ void ETH_MIIPinInit(void)
     define_O(GPIOA,GPIO_Pin_0);                                                         /* PA0 */
     define_O(GPIOA,GPIO_Pin_3);                                                         /* PA3 */
 }
+
+/*********************************************************************
+ * @fn      ETH_RMIIPinInit
+ *
+ * @brief   PHY RMII interface GPIO initialization.
+ *
+ * @return  none
+ */
+void ETHDRV_RMIIPinInit(void)
+{
+    GPIO_InitTypeDef GPIO_InitStructure;
+
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA|RCC_APB2Periph_GPIOB|RCC_APB2Periph_GPIOC, ENABLE);
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);
+
+    define_O(GPIOA,GPIO_Pin_2);                                                         /* MDIO */
+    define_O(GPIOC,GPIO_Pin_1);                                                         /* MDC */
+
+    define_O(GPIOB,GPIO_Pin_11);                                                        /* txen */
+    define_O(GPIOB,GPIO_Pin_12);                                                        /* txd0 */
+    define_O(GPIOB,GPIO_Pin_13);                                                        /* txd1 */
+    /* RX */
+    define_I(GPIOA,GPIO_Pin_1);                                                         /* PA1 RXC */
+    define_I(GPIOA,GPIO_Pin_7);                                                         /* PA7 RXDV */
+    define_I(GPIOC,GPIO_Pin_4);                                                         /* RXD0 */
+    define_I(GPIOC,GPIO_Pin_5);                                                         /* RXD1 */
+
+    GPIO_PinRemapConfig(GPIO_Remap_MII_RMII_SEL, ENABLE);
+
+    //define_O(GPIOA,GPIO_Pin_0);                                                         /* PA0 */
+   // define_O(GPIOA,GPIO_Pin_3);                                                         /* PA3 */
+}
 #endif
 
-void ETH_PHYLink( void )
+void ETHDRV_PHYLink( void )
 {
     u32 phy_stat;
 
@@ -402,7 +436,7 @@ void ETH_PHYLink( void )
 #else
     phy_stat = ETH_ReadPHYRegister( PHY_ADDRESS, PHY_BSR );
     LastPhyStat = phy_stat;
-    WCHNET_PhyStatus( phy_stat );
+    WCHNET_PhyStatus(phy_stat);
     if( (phy_stat&PHY_Linked_Status) && (phy_stat&PHY_AutoNego_Complete) )
     {
         phy_stat = ETH_ReadPHYRegister( PHY_ADDRESS, PHY_BCR );
@@ -439,7 +473,7 @@ void ETH_PHYLink( void )
  *
  * @return  Initialization status.
  */
-uint32_t ETH_RegInit( ETH_InitTypeDef* ETH_InitStruct, uint16_t PHYAddress )
+uint32_t ETHDRV_RegInit(ETH_InitTypeDef* ETH_InitStruct, uint16_t PHYAddress)
 {
     uint32_t tmpreg = 0;
 
@@ -516,7 +550,7 @@ uint32_t ETH_RegInit( ETH_InitTypeDef* ETH_InitStruct, uint16_t PHYAddress )
 
     /* Reset the physical layer */
     ETH_WritePHYRegister(PHYAddress, PHY_BCR, PHY_Reset);
-    ETH_WritePHYRegister(gPHYAddress, PHY_MDIX, PHY_PN_SWITCH_AUTO);
+    //ETH_WritePHYRegister(gPHYAddress, PHY_MDIX, PHY_PN_SWITCH_AUTO);
     return ETH_SUCCESS;
 }
 
@@ -527,13 +561,13 @@ uint32_t ETH_RegInit( ETH_InitTypeDef* ETH_InitStruct, uint16_t PHYAddress )
  *
  * @return  none
  */
-void ETH_Configuration( uint8_t *macAddr )
+void ETHDRV_Configuration(uint8_t *macAddr)
 {
     ETH_InitTypeDef ETH_InitStructure;
     uint16_t timeout = 10000;
 
     /* Enable Ethernet MAC clock */
-    RCC_AHBPeriphClockCmd(RCC_AHBPeriph_ETH_MAC|RCC_AHBPeriph_ETH_MAC_Tx|RCC_AHBPeriph_ETH_MAC_Rx,ENABLE);
+    RCC_AHBPeriphClockCmd(RCC_AHBPeriph_ETH_MAC|RCC_AHBPeriph_ETH_MAC_Tx|RCC_AHBPeriph_ETH_MAC_Rx, ENABLE);
 
     gPHYAddress = PHY_ADDRESS;
 #if( PHY_MODE ==  USE_10M_BASE )
@@ -542,7 +576,9 @@ void ETH_Configuration( uint8_t *macAddr )
     EXTEN->EXTEN_CTR |= EXTEN_ETH_10M_EN;    /* Enable 10M Ethernet physical layer   */
 #elif( PHY_MODE ==  USE_MAC_MII)
     /*  Enable MII GPIO */
-    ETH_MIIPinInit( );
+  //  ETHDRV_MIIPinInit( );
+
+    ETHDRV_RMIIPinInit();
 #endif
     /* Reset ETHERNET on AHB Bus */
     ETH_DeInit();
@@ -568,7 +604,7 @@ void ETH_Configuration( uint8_t *macAddr )
 #else
     ETH_InitStructure.ETH_Speed = ETH_Speed_100M;
 #endif
-    ETH_InitStructure.ETH_AutoNegotiation = ETH_AutoNegotiation_Enable  ;
+    ETH_InitStructure.ETH_AutoNegotiation = ETH_AutoNegotiation_Enable ;
     ETH_InitStructure.ETH_LoopbackMode = ETH_LoopbackMode_Disable;
     ETH_InitStructure.ETH_RetryTransmission = ETH_RetryTransmission_Disable;
     ETH_InitStructure.ETH_AutomaticPadCRCStrip = ETH_AutomaticPadCRCStrip_Disable;
@@ -588,8 +624,8 @@ void ETH_Configuration( uint8_t *macAddr )
     ETH_InitStructure.ETH_ForwardUndersizedGoodFrames = ETH_ForwardUndersizedGoodFrames_Enable;
     ETH_InitStructure.ETH_SecondFrameOperate = ETH_SecondFrameOperate_Disable;
     /* Configure Ethernet */
-    ETH_RegInit( &ETH_InitStructure, gPHYAddress );
-#if( PHY_MODE ==  USE_10M_BASE )
+    ETHDRV_RegInit(&ETH_InitStructure, gPHYAddress);
+#if(PHY_MODE ==  USE_10M_BASE)
     /* Enable the Ethernet Rx Interrupt */
     ETH_DMAITConfig( ETH_DMA_IT_NIS |\
       ETH_DMA_IT_R |\
@@ -598,7 +634,7 @@ void ETH_Configuration( uint8_t *macAddr )
       ENABLE );
 #else
     /* Enable the Ethernet Rx Interrupt */
-    ETH_DMAITConfig( ETH_DMA_IT_NIS | ETH_DMA_IT_R | ETH_DMA_IT_T, ENABLE );
+    ETH_DMAITConfig(ETH_DMA_IT_NIS | ETH_DMA_IT_R | ETH_DMA_IT_T, ENABLE);
 #endif
 }
 
@@ -611,7 +647,7 @@ void ETH_Configuration( uint8_t *macAddr )
  *
  * @return  Send status.
  */
-uint32_t ETH_TxPktChainMode(uint16_t len, uint32_t *pBuff )
+uint32_t ETH_TxPktChainMode(uint16_t len, uint32_t *pBuff)
 {
     /* Check if the descriptor is owned by the ETHERNET DMA (when set) or CPU (when reset) */
     if((DMATxDescToSet->Status & ETH_DMATxDesc_OWN) != (u32)RESET)
@@ -652,18 +688,18 @@ uint32_t ETH_TxPktChainMode(uint16_t len, uint32_t *pBuff )
  *
  * @return  none
  */
-void WCHNET_ETHIsr(void)
+void ETHDRV_ETHIsr(void)
 {
-    uint32_t int_sta;
+    uint32_t intState;
 
-    int_sta = ETH->DMASR;
-    if( int_sta & ETH_DMA_IT_NIS )
+    intState = ETH->DMASR;
+    if(intState & ETH_DMA_IT_NIS)
     {
-        if( int_sta & ETH_DMA_IT_R )
+        if(intState & ETH_DMA_IT_R)
         {
-            if( ChipVerNum < CHIP_C_VER_NUM )
+            if(ChipVerNum < CHIP_C_VER_NUM)
             {
-                if ((int_sta & ETH_DMA_IT_RBU) != (u32)RESET)
+                if ((intState & ETH_DMA_IT_RBU) != (u32)RESET)
                 {
                     /* Clear RBUS ETHERNET DMA flag */
                     ETH->DMASR = ETH_DMA_IT_RBU;
@@ -688,17 +724,19 @@ void WCHNET_ETHIsr(void)
                 DMARxDescToGet = (ETH_DMADESCTypeDef*) (DMARxDescToGet->Buffer2NextDescAddr);
             }
         }
-        if( int_sta & ETH_DMA_IT_T )
+
+        if(intState & ETH_DMA_IT_T)
         {
             ETH_DMAClearITPendingBit(ETH_DMA_IT_T);
-            if( (pDMATxSet->Status&ETH_DMATxDesc_ES) )
+            if(pDMATxSet->Status & ETH_DMATxDesc_ES)
             {
                 /***/
             }
         }
-        if( int_sta & ETH_DMA_IT_PHYLINK)
+
+        if(intState & ETH_DMA_IT_PHYLINK)
         {
-            ETH_PHYLink( );
+            ETHDRV_PHYLink( );
             ETH_DMAClearITPendingBit(ETH_DMA_IT_PHYLINK);
         }
         ETH_DMAClearITPendingBit(ETH_DMA_IT_NIS);
@@ -712,13 +750,13 @@ void WCHNET_ETHIsr(void)
  *
  * @return  none
  */
-void ETH_Init( uint8_t *macAddr )
+void ETHDRV_Init( uint8_t *macAddr )
 {
 #if( PHY_MODE ==  USE_10M_BASE )
     ETH_LedConfiguration( );
 #endif
     Delay_Ms(100);
-    ETH_Configuration( macAddr );
+    ETHDRV_Configuration(macAddr);
     ETH_DMATxDescChainInit(DMATxDscrTab, MACTxBuf, ETH_TXBUFNB);
     ETH_DMARxDescChainInit(DMARxDscrTab, MACRxBuf, ETH_RXBUFNB);
     pDMARxSet = DMARxDscrTab;
@@ -733,9 +771,8 @@ void ETH_Init( uint8_t *macAddr )
  *
  * @return  command status
  */
-uint8_t ETH_LibInit( uint8_t *ip, uint8_t *gwip, uint8_t *mask, uint8_t *macaddr )
+uint8_t ETHDRV_LibInit( uint8_t *ip, uint8_t *gwip, uint8_t *mask, uint8_t *macaddr )
 {
-    uint8_t s;
     struct _WCH_CFG  cfg;
 
     memset(&cfg,0,sizeof(cfg));
@@ -751,13 +788,16 @@ uint8_t ETH_LibInit( uint8_t *ip, uint8_t *gwip, uint8_t *mask, uint8_t *macaddr
 #endif
     cfg.net_send = ETH_TxPktChainMode;
     cfg.CheckValid = WCHNET_CFG_VALID;
-    s = WCHNET_ConfigLIB(&cfg);
-    if( s ){
-       return (s);
+
+    uint8_t resVal = WCHNET_ConfigLIB(&cfg);
+    if( resVal )
+    {
+       return resVal;
     }
-    s = WCHNET_Init(ip,gwip,mask,macaddr);
-    ETH_Init( macaddr );
-    return (s);
+
+    resVal = WCHNET_Init(ip, gwip, mask, macaddr);
+    ETHDRV_Init(macaddr);
+    return resVal;
 }
 
 /******************************** endfile @ eth_driver ******************************/
