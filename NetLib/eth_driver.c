@@ -14,6 +14,10 @@
 #include "debug.h"
 #include "eth_driver.h"
 
+//func prototypes(for comfort readibg)
+
+uint32_t ETHDRV_RegInit(ETH_InitTypeDef* ETH_InitStruct, uint16_t PHYAddress);
+
  __attribute__((__aligned__(4))) ETH_DMADESCTypeDef DMARxDscrTab[ETH_RXBUFNB];      /* MAC receive descriptor, 4-byte aligned*/
  __attribute__((__aligned__(4))) ETH_DMADESCTypeDef DMATxDscrTab[ETH_TXBUFNB];      /* MAC send descriptor, 4-byte aligned */
 
@@ -50,7 +54,7 @@ uint8_t volatile ChipVerNum;
 ETH_DMADESCTypeDef *pDMARxSet;
 ETH_DMADESCTypeDef *pDMATxSet;
 
-#if( PHY_MODE == USE_10M_BASE )
+#if(PHY_MODE == USE_10M_BASE)
 uint32_t phyLinkTime;
 uint8_t  phyLinkStatus = 0;
 uint8_t  phyStatus = 0;
@@ -60,7 +64,7 @@ uint8_t  phySucCnt = 0;
 uint8_t  phyPN = PHY_PN_SWITCH_AUTO;
 #endif
 
-#if( PHY_MODE ==  USE_MAC_MII )
+#if(PHY_MODE ==  USE_MAC_MII)
 u16 LastPhyStat = 0;
 u32 LastQueryPhyTime = 0;
 #endif
@@ -71,7 +75,7 @@ u32 LastQueryPhyTime = 0;
  *
  * @return  none.
  */
-void ETHDRV_GetMacAddr( uint8_t *p )
+void ETHDRV_GetMacAddr(uint8_t *p)
 {
     uint8_t i;
     uint8_t *macaddr=(uint8_t *)(ROM_CFG_USERADR_ID+5);
@@ -119,7 +123,7 @@ void ETHDRV_QueryPhyState(void)
 }
 #endif
 
-#if( PHY_MODE ==  USE_10M_BASE )
+#if(PHY_MODE ==  USE_10M_BASE)
 /*********************************************************************
  * @fn      WCHNET_LinkProcess
  *
@@ -135,15 +139,15 @@ void WCHNET_LinkProcess( void )
     phy_anlpar = ETH_ReadPHYRegister(gPHYAddress, PHY_ANLPAR);
     phy_bmsr = ETH_ReadPHYRegister( gPHYAddress, PHY_BMSR);
 
-    if( (phy_anlpar&PHY_ANLPAR_SELECTOR_FIELD) )
+    if(phy_anlpar & PHY_ANLPAR_SELECTOR_FIELD)
     {
-        if( !(phyLinkStatus&PHY_LINK_WAIT_SUC) )
+        if( !(phyLinkStatus & PHY_LINK_WAIT_SUC) )
         {
-            if( phyPN == PHY_PN_SWITCH_AUTO )
+            if(phyPN == PHY_PN_SWITCH_AUTO)
             {
                 PHY_PN_SWITCH(PHY_PN_SWITCH_P);
             }
-            else if( phyPN == PHY_PN_SWITCH_P )
+            else if(phyPN == PHY_PN_SWITCH_P)
             {
                 phyLinkStatus = PHY_LINK_WAIT_SUC;
             }
@@ -168,7 +172,7 @@ void WCHNET_LinkProcess( void )
     }
     else
     {
-        if( phyLinkStatus == PHY_LINK_WAIT_SUC )
+        if(phyLinkStatus == PHY_LINK_WAIT_SUC)
         {
             phyRetryCnt = 0;
             if(phyLinkCnt++ == 15 )
@@ -181,11 +185,11 @@ void WCHNET_LinkProcess( void )
         }
         else
         {
-            if( phyPN == PHY_PN_SWITCH_P )
+            if(phyPN == PHY_PN_SWITCH_P)
             {
                 PHY_PN_SWITCH(PHY_PN_SWITCH_N);
             }
-            else if( phyPN == PHY_PN_SWITCH_N )
+            else if(phyPN == PHY_PN_SWITCH_N)
             {
                 phyRetryCnt = 0;
                 if(phyLinkCnt++ == 15 )
@@ -196,7 +200,8 @@ void WCHNET_LinkProcess( void )
                     PHY_PN_SWITCH(PHY_PN_SWITCH_AUTO);
                 }
             }
-            else{
+            else
+            {
                 PHY_RESTART_NEGOTIATION( );
             }
         }
@@ -214,7 +219,7 @@ void WCHNET_LinkProcess( void )
  */
 void WCHNET_HandlePhyNegotiation(void)
 {
-    if( !phyStatus )                        /* Handling PHY Negotiation Exceptions */
+    if(!phyStatus)                        /* Handling PHY Negotiation Exceptions */
     {
         if( LocalTime - phyLinkTime >= PHY_LINK_TASK_PERIOD )  /* 50ms cycle timing call */
         {
@@ -233,8 +238,8 @@ void WCHNET_HandlePhyNegotiation(void)
  */
 void ETHDRV_MainTask(void)
 {
-    WCHNET_NetInput( );                     /* Ethernet data input */
-    WCHNET_PeriodicHandle( );               /* Protocol stack time-related task processing */
+   // WCHNET_NetInput( );                     /* Ethernet data input */
+   // WCHNET_PeriodicHandle( );               /* Protocol stack time-related task processing */
 
 #if( PHY_MODE ==  USE_10M_BASE )
     WCHNET_HandlePhyNegotiation();
@@ -245,7 +250,7 @@ void ETHDRV_MainTask(void)
 #endif
 }
 
-#if( PHY_MODE ==  USE_10M_BASE )
+#if(PHY_MODE ==  USE_10M_BASE)
 /*********************************************************************
  * @fn      ETH_LedLinkSet
  *
@@ -272,7 +277,7 @@ void ETH_LedLinkSet( uint8_t mode )
  *
  * @return  none
  */
-void ETH_LedDataSet( uint8_t mode )
+void ETH_LedDataSet(uint8_t mode)
 {
     if( mode == LED_OFF )
     {
@@ -319,7 +324,7 @@ void ETH_SetClock(void)
     RCC_PLL3Cmd(ENABLE);
     while(RESET == RCC_GetFlagStatus(RCC_FLAG_PLL3RDY));
 }
-#elif( PHY_MODE ==  USE_MAC_MII )
+#elif(PHY_MODE ==  USE_MAC_MII)
 /*********************************************************************
  * @fn      ETH_MIIPinInit
  *
@@ -436,7 +441,7 @@ void ETHDRV_PHYLink( void )
 #else
     phy_stat = ETH_ReadPHYRegister( PHY_ADDRESS, PHY_BSR );
     LastPhyStat = phy_stat;
-    WCHNET_PhyStatus(phy_stat);
+    //WCHNET_PhyStatus(phy_stat);
     if( (phy_stat&PHY_Linked_Status) && (phy_stat&PHY_AutoNego_Complete) )
     {
         phy_stat = ETH_ReadPHYRegister( PHY_ADDRESS, PHY_BCR );
@@ -460,6 +465,92 @@ void ETHDRV_PHYLink( void )
         }
         ETH_Start( );
     }
+#endif
+}
+
+/*********************************************************************
+ * @fn      ETH_Configuration
+ *
+ * @brief   Ethernet configure.
+ *
+ * @return  none
+ */
+void ETHDRV_Configuration(uint8_t *macAddr)
+{
+    ETH_InitTypeDef ETH_InitStructure;
+    uint16_t timeout = 10000;
+
+    /* Enable Ethernet MAC clock */
+    RCC_AHBPeriphClockCmd(RCC_AHBPeriph_ETH_MAC|RCC_AHBPeriph_ETH_MAC_Tx|RCC_AHBPeriph_ETH_MAC_Rx, ENABLE);
+
+    gPHYAddress = PHY_ADDRESS;
+#if(PHY_MODE ==  USE_10M_BASE)
+    ETH_SetClock( );
+    /* Enable internal 10BASE-T PHY*/
+    EXTEN->EXTEN_CTR |= EXTEN_ETH_10M_EN;    /* Enable 10M Ethernet physical layer   */
+#elif(PHY_MODE ==  USE_MAC_MII)
+    /*  Enable MII GPIO */
+  //  ETHDRV_MIIPinInit( );
+
+    ETHDRV_RMIIPinInit();
+#endif
+    /* Reset ETHERNET on AHB Bus */
+    ETH_DeInit();
+
+    /* Software reset */
+    ETH_SoftwareReset();
+
+    /* Wait for software reset */
+    do{
+        Delay_Us(10);
+        if( !--timeout )  break;
+    }while(ETH->DMABMR & ETH_DMABMR_SR);
+
+    ChipVerNum = GET_CHIP_VER();
+    /* ETHERNET Configuration */
+    /* Call ETH_StructInit if you don't like to configure all ETH_InitStructure parameter */
+    ETH_StructInit(&ETH_InitStructure);
+    /* Fill ETH_InitStructure parameters */
+    /*------------------------   MAC   -----------------------------------*/
+    ETH_InitStructure.ETH_Mode = ETH_Mode_FullDuplex;
+#if( PHY_MODE ==  USE_10M_BASE )
+    ETH_InitStructure.ETH_Speed = ETH_Speed_10M;
+#else
+    ETH_InitStructure.ETH_Speed = ETH_Speed_100M;
+#endif
+    ETH_InitStructure.ETH_AutoNegotiation = ETH_AutoNegotiation_Enable ;
+    ETH_InitStructure.ETH_LoopbackMode = ETH_LoopbackMode_Disable;
+    ETH_InitStructure.ETH_RetryTransmission = ETH_RetryTransmission_Disable;
+    ETH_InitStructure.ETH_AutomaticPadCRCStrip = ETH_AutomaticPadCRCStrip_Disable;
+    ETH_InitStructure.ETH_ReceiveAll = ETH_ReceiveAll_Enable;
+    ETH_InitStructure.ETH_BroadcastFramesReception = ETH_BroadcastFramesReception_Enable;
+    ETH_InitStructure.ETH_PromiscuousMode = ETH_PromiscuousMode_Enable;
+    ETH_InitStructure.ETH_MulticastFramesFilter = ETH_MulticastFramesFilter_Perfect;
+    ETH_InitStructure.ETH_UnicastFramesFilter = ETH_UnicastFramesFilter_Perfect;
+
+    /*------------------------   DMA   -----------------------------------*/
+    /* When we use the Checksum offload feature, we need to enable the Store and Forward mode:
+    the store and forward guarantee that a whole frame is stored in the FIFO, so the MAC can insert/verify the checksum,
+    if the checksum is OK the DMA can handle the frame otherwise the frame is dropped */
+    ETH_InitStructure.ETH_DropTCPIPChecksumErrorFrame = ETH_DropTCPIPChecksumErrorFrame_Enable;
+    ETH_InitStructure.ETH_ReceiveStoreForward = ETH_ReceiveStoreForward_Enable;
+    ETH_InitStructure.ETH_TransmitStoreForward = ETH_TransmitStoreForward_Enable;
+    ETH_InitStructure.ETH_ForwardErrorFrames = ETH_ForwardErrorFrames_Enable;
+    ETH_InitStructure.ETH_ForwardUndersizedGoodFrames = ETH_ForwardUndersizedGoodFrames_Enable;
+    ETH_InitStructure.ETH_SecondFrameOperate = ETH_SecondFrameOperate_Disable;
+    /* Configure Ethernet */
+    ETHDRV_RegInit(&ETH_InitStructure, gPHYAddress);
+
+#if(PHY_MODE ==  USE_10M_BASE)
+    /* Enable the Ethernet Rx Interrupt */
+    ETH_DMAITConfig( ETH_DMA_IT_NIS |\
+      ETH_DMA_IT_R |\
+      ETH_DMA_IT_T |\
+      ETH_DMA_IT_PHYLINK,\
+      ENABLE );
+#else
+    /* Enable the Ethernet Rx Interrupt */
+    ETH_DMAITConfig(ETH_DMA_IT_NIS | ETH_DMA_IT_R | ETH_DMA_IT_T, ENABLE);
 #endif
 }
 
@@ -555,90 +646,6 @@ uint32_t ETHDRV_RegInit(ETH_InitTypeDef* ETH_InitStruct, uint16_t PHYAddress)
 }
 
 /*********************************************************************
- * @fn      ETH_Configuration
- *
- * @brief   Ethernet configure.
- *
- * @return  none
- */
-void ETHDRV_Configuration(uint8_t *macAddr)
-{
-    ETH_InitTypeDef ETH_InitStructure;
-    uint16_t timeout = 10000;
-
-    /* Enable Ethernet MAC clock */
-    RCC_AHBPeriphClockCmd(RCC_AHBPeriph_ETH_MAC|RCC_AHBPeriph_ETH_MAC_Tx|RCC_AHBPeriph_ETH_MAC_Rx, ENABLE);
-
-    gPHYAddress = PHY_ADDRESS;
-#if( PHY_MODE ==  USE_10M_BASE )
-    ETH_SetClock( );
-    /* Enable internal 10BASE-T PHY*/
-    EXTEN->EXTEN_CTR |= EXTEN_ETH_10M_EN;    /* Enable 10M Ethernet physical layer   */
-#elif( PHY_MODE ==  USE_MAC_MII)
-    /*  Enable MII GPIO */
-  //  ETHDRV_MIIPinInit( );
-
-    ETHDRV_RMIIPinInit();
-#endif
-    /* Reset ETHERNET on AHB Bus */
-    ETH_DeInit();
-
-    /* Software reset */
-    ETH_SoftwareReset();
-
-    /* Wait for software reset */
-    do{
-        Delay_Us(10);
-        if( !--timeout )  break;
-    }while(ETH->DMABMR & ETH_DMABMR_SR);
-
-    ChipVerNum = GET_CHIP_VER();
-    /* ETHERNET Configuration */
-    /* Call ETH_StructInit if you don't like to configure all ETH_InitStructure parameter */
-    ETH_StructInit(&ETH_InitStructure);
-    /* Fill ETH_InitStructure parameters */
-    /*------------------------   MAC   -----------------------------------*/
-    ETH_InitStructure.ETH_Mode = ETH_Mode_FullDuplex;
-#if( PHY_MODE ==  USE_10M_BASE )
-    ETH_InitStructure.ETH_Speed = ETH_Speed_10M;
-#else
-    ETH_InitStructure.ETH_Speed = ETH_Speed_100M;
-#endif
-    ETH_InitStructure.ETH_AutoNegotiation = ETH_AutoNegotiation_Enable ;
-    ETH_InitStructure.ETH_LoopbackMode = ETH_LoopbackMode_Disable;
-    ETH_InitStructure.ETH_RetryTransmission = ETH_RetryTransmission_Disable;
-    ETH_InitStructure.ETH_AutomaticPadCRCStrip = ETH_AutomaticPadCRCStrip_Disable;
-    ETH_InitStructure.ETH_ReceiveAll = ETH_ReceiveAll_Enable;
-    ETH_InitStructure.ETH_BroadcastFramesReception = ETH_BroadcastFramesReception_Enable;
-    ETH_InitStructure.ETH_PromiscuousMode = ETH_PromiscuousMode_Enable;
-    ETH_InitStructure.ETH_MulticastFramesFilter = ETH_MulticastFramesFilter_Perfect;
-    ETH_InitStructure.ETH_UnicastFramesFilter = ETH_UnicastFramesFilter_Perfect;
-    /*------------------------   DMA   -----------------------------------*/
-    /* When we use the Checksum offload feature, we need to enable the Store and Forward mode:
-    the store and forward guarantee that a whole frame is stored in the FIFO, so the MAC can insert/verify the checksum,
-    if the checksum is OK the DMA can handle the frame otherwise the frame is dropped */
-    ETH_InitStructure.ETH_DropTCPIPChecksumErrorFrame = ETH_DropTCPIPChecksumErrorFrame_Enable;
-    ETH_InitStructure.ETH_ReceiveStoreForward = ETH_ReceiveStoreForward_Enable;
-    ETH_InitStructure.ETH_TransmitStoreForward = ETH_TransmitStoreForward_Enable;
-    ETH_InitStructure.ETH_ForwardErrorFrames = ETH_ForwardErrorFrames_Enable;
-    ETH_InitStructure.ETH_ForwardUndersizedGoodFrames = ETH_ForwardUndersizedGoodFrames_Enable;
-    ETH_InitStructure.ETH_SecondFrameOperate = ETH_SecondFrameOperate_Disable;
-    /* Configure Ethernet */
-    ETHDRV_RegInit(&ETH_InitStructure, gPHYAddress);
-#if(PHY_MODE ==  USE_10M_BASE)
-    /* Enable the Ethernet Rx Interrupt */
-    ETH_DMAITConfig( ETH_DMA_IT_NIS |\
-      ETH_DMA_IT_R |\
-      ETH_DMA_IT_T |\
-      ETH_DMA_IT_PHYLINK,\
-      ENABLE );
-#else
-    /* Enable the Ethernet Rx Interrupt */
-    ETH_DMAITConfig(ETH_DMA_IT_NIS | ETH_DMA_IT_R | ETH_DMA_IT_T, ENABLE);
-#endif
-}
-
-/*********************************************************************
  * @fn      ETH_TxPktChainMode
  *
  * @brief   process net send a Ethernet frame in chain mode.
@@ -679,6 +686,65 @@ uint32_t ETH_TxPktChainMode(uint16_t len, uint32_t *pBuff)
     DMATxDescToSet = (ETH_DMADESCTypeDef*) (DMATxDescToSet->Buffer2NextDescAddr);
     /* Return SUCCESS */
     return ETH_SUCCESS;
+}
+
+/*********************************************************************
+ * @fn      ETH_Init
+ *
+ * @brief   Ethernet initialization.
+ *
+ * @return  none
+ */
+void ETHDRV_Init( uint8_t *macAddr )
+{
+#if( PHY_MODE ==  USE_10M_BASE )
+    ETH_LedConfiguration( );
+#endif
+    Delay_Ms(100);
+    ETHDRV_Configuration(macAddr);
+
+    ETH_DMATxDescChainInit(DMATxDscrTab, MACTxBuf, ETH_TXBUFNB);
+    ETH_DMARxDescChainInit(DMARxDscrTab, MACRxBuf, ETH_RXBUFNB);
+    pDMARxSet = DMARxDscrTab;
+    pDMATxSet = DMATxDscrTab;
+
+    NVIC_EnableIRQ(ETH_IRQn);
+}
+
+/*********************************************************************
+ * @fn      ETH_LibInit
+ *
+ * @brief   Ethernet library initialization program
+ *
+ * @return  command status
+ */
+uint8_t ETHDRV_LibInit( uint8_t *ip, uint8_t *gwip, uint8_t *mask, uint8_t *macaddr )
+{
+//    struct _WCH_CFG  cfg;
+//
+//    memset(&cfg,0,sizeof(cfg));
+//    cfg.TxBufSize = ETH_TX_BUF_SZE;
+//    cfg.TCPMss   = WCHNET_TCP_MSS;
+//    cfg.HeapSize = WCHNET_MEM_HEAP_SIZE;
+//    cfg.ARPTableNum = WCHNET_NUM_ARP_TABLE;
+//    cfg.MiscConfig0 = WCHNET_MISC_CONFIG0;
+//    cfg.MiscConfig1 = WCHNET_MISC_CONFIG1;
+//#if( PHY_MODE ==  USE_10M_BASE )
+//    cfg.led_link = ETH_LedLinkSet;
+//    cfg.led_data = ETH_LedDataSet;
+//#endif
+//    cfg.net_send = ETH_TxPktChainMode;
+//    cfg.CheckValid = WCHNET_CFG_VALID;
+//
+//    uint8_t resVal = WCHNET_ConfigLIB(&cfg);
+//    if( resVal )
+//    {
+//       return resVal;
+//    }
+//
+//    resVal = WCHNET_Init(ip, gwip, mask, macaddr);
+    ETHDRV_Init(macaddr);
+    return 0;//resVal;
 }
 
 /*********************************************************************
@@ -743,61 +809,5 @@ void ETHDRV_ETHIsr(void)
     }
 }
 
-/*********************************************************************
- * @fn      ETH_Init
- *
- * @brief   Ethernet initialization.
- *
- * @return  none
- */
-void ETHDRV_Init( uint8_t *macAddr )
-{
-#if( PHY_MODE ==  USE_10M_BASE )
-    ETH_LedConfiguration( );
-#endif
-    Delay_Ms(100);
-    ETHDRV_Configuration(macAddr);
-    ETH_DMATxDescChainInit(DMATxDscrTab, MACTxBuf, ETH_TXBUFNB);
-    ETH_DMARxDescChainInit(DMARxDscrTab, MACRxBuf, ETH_RXBUFNB);
-    pDMARxSet = DMARxDscrTab;
-    pDMATxSet = DMATxDscrTab;
-    NVIC_EnableIRQ(ETH_IRQn);
-}
-
-/*********************************************************************
- * @fn      ETH_LibInit
- *
- * @brief   Ethernet library initialization program
- *
- * @return  command status
- */
-uint8_t ETHDRV_LibInit( uint8_t *ip, uint8_t *gwip, uint8_t *mask, uint8_t *macaddr )
-{
-    struct _WCH_CFG  cfg;
-
-    memset(&cfg,0,sizeof(cfg));
-    cfg.TxBufSize = ETH_TX_BUF_SZE;
-    cfg.TCPMss   = WCHNET_TCP_MSS;
-    cfg.HeapSize = WCHNET_MEM_HEAP_SIZE;
-    cfg.ARPTableNum = WCHNET_NUM_ARP_TABLE;
-    cfg.MiscConfig0 = WCHNET_MISC_CONFIG0;
-    cfg.MiscConfig1 = WCHNET_MISC_CONFIG1;
-#if( PHY_MODE ==  USE_10M_BASE )
-    cfg.led_link = ETH_LedLinkSet;
-    cfg.led_data = ETH_LedDataSet;
-#endif
-    cfg.net_send = ETH_TxPktChainMode;
-    cfg.CheckValid = WCHNET_CFG_VALID;
-
-    uint8_t resVal = WCHNET_ConfigLIB(&cfg);
-    if( resVal )
-    {
-       return resVal;
-    }
-
-    resVal = WCHNET_Init(ip, gwip, mask, macaddr);
-    ETHDRV_Init(macaddr);
-    return resVal;
-}
 
 /******************************** endfile @ eth_driver ******************************/

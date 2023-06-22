@@ -5,7 +5,7 @@
 // Only for this file
 static void mStopIfError(u8 iError);
 void ETHERNET_CreateUdpSocket(void);
-void ETHERNET_UdpServerRecv(struct _SCOK_INF *socinf, u32 ipaddr, u16 port, u8 *buf, u32 len);
+void ETHERNET_UdpRecieve(struct _SCOK_INF *socinf, u32 ipaddr, u16 port, u8 *buf, u32 len);
 
 #define UDP_REC_BUF_LEN                1472
 u8 MACAddr[6];                                              //MAC address
@@ -51,13 +51,14 @@ void ETHERNET_Init(parser_ptr func)
     TIM2_Init();
 
     uint8_t result = ETHDRV_LibInit(IPAddr, GWIPAddr, IPMask, MACAddr);        //Ethernet library initialize
-    mStopIfError(result);
+//    mStopIfError(result);
 
-    if (result == WCHNET_ERR_SUCCESS)
-        printf("WCHNET_LibInit Success\r\n");
 
-    for (u8 i = 0; i < WCHNET_MAX_SOCKET_NUM; i++)
-        ETHERNET_CreateUdpSocket();
+//    if (result == WCHNET_ERR_SUCCESS)
+//        printf("WCHNET_LibInit Success\r\n");
+//
+//    for (u8 i = 0; i < WCHNET_MAX_SOCKET_NUM; i++)
+//        ETHERNET_CreateUdpSocket();
 
     parse_frame_func = func;
 }
@@ -80,7 +81,7 @@ void ETHERNET_CreateUdpSocket(void)
     TmpSocketInf.ProtoType = PROTO_TYPE_UDP;
     TmpSocketInf.RecvStartPoint = (u32) SocketRecvBuf[SocketId];
     TmpSocketInf.RecvBufLen = UDP_REC_BUF_LEN;
-    TmpSocketInf.AppCallBack = ETHERNET_UdpServerRecv;
+    TmpSocketInf.AppCallBack = ETHERNET_UdpRecieve;
     u8 result = WCHNET_SocketCreat(&SocketId, &TmpSocketInf);
     printf("WCHNET_SocketCreat %d\r\n", SocketId);
     mStopIfError(result);
@@ -98,8 +99,9 @@ void ETHERNET_CreateUdpSocket(void)
  *          len - received data length
  * @return  none
  */
-void ETHERNET_UdpServerRecv(struct _SCOK_INF *socinf, u32 ipaddr, u16 port, u8 *buf, u32 len)
+void ETHERNET_UdpRecieve(struct _SCOK_INF *socinf, u32 ipaddr, u16 port, u8 *buf, u32 len)
 {
+    GPIO_SetBits(GPIOC, GPIO_Pin_3);
     GPIO_SetBits(GPIOC, GPIO_Pin_2);
 
     u8 ip_addr[4], i;
@@ -110,6 +112,7 @@ void ETHERNET_UdpServerRecv(struct _SCOK_INF *socinf, u32 ipaddr, u16 port, u8 *
     GPIO_ResetBits(GPIOC, GPIO_Pin_2);
 
     WCHNET_SocketUdpSendTo(socinf->SockIndex, buf, &outDataLen, ip_addr, port);
+    GPIO_ResetBits(GPIOC, GPIO_Pin_3);
 
     printf("Rm IP: ");
     for (i = 0; i < 4; i++) {

@@ -68,7 +68,18 @@ void EXTI9_5_IRQHandler(void)
  */
 void ETH_IRQHandler(void)
 {
+    GPIO_SetBits(GPIOC, GPIO_Pin_3);
     ETHDRV_ETHIsr();
+
+    uint8_t recBuf[1024]={0};
+    uint32_t result = ETH_HandleRxPkt(recBuf);
+    printf("Result: %d, MAC:%x%x%x%x%x%x\r\n", result, recBuf[0],
+            recBuf[1],
+            recBuf[2],
+            recBuf[3],
+            recBuf[4],
+            recBuf[5]);
+    GPIO_ResetBits(GPIOC, GPIO_Pin_3);
 }
 
 /*********************************************************************
@@ -81,6 +92,6 @@ void ETH_IRQHandler(void)
 void TIM2_IRQHandler(void)
 {
     ETHDRV_TimeIsr(WCHNETTIMERPERIOD);
-    TIM_ClearITPendingBit(TIM2, TIM_IT_Update  );
+    TIM_ClearITPendingBit(TIM2, TIM_IT_Update);
 }
 
