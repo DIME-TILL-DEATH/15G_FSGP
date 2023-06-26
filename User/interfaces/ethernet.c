@@ -2,25 +2,27 @@
 
 #include "ethernet.h"
 
-// Only for this file
-static void mStopIfError(u8 iError);
-void ETHERNET_CreateUdpSocket(void);
-void ETHERNET_UdpRecieve(struct _SCOK_INF *socinf, u32 ipaddr, u16 port, u8 *buf, u32 len);
+//void ETHERNET_UdpRecieve(struct _SCOK_INF *socinf, u32 ipaddr, u16 port, u8 *buf, u32 len);
 
 #define UDP_REC_BUF_LEN                1472
-u8 MACAddr[6];                                              //MAC address
-u8 IPAddr[4] = { 192, 168, 104, 10 };                         //IP address
-u8 GWIPAddr[4] = { 192, 168, 104, 255 };                        //Gateway IP address
-u8 IPMask[4] = { 255, 255, 255, 0 };                        //subnet mask
-u8 DESIP[4] = { 0, 0, 0, 0 };                         //destination IP address
-u16 desport = 40003;                                         //destination port
-u16 srcport = 40003;                                         //source port
+uint8_t MACAddr[6];                                              //MAC address
+uint8_t IPAddr[4] = {192, 168, 104, 10};                         //IP address
+uint8_t GWIPAddr[4] = {192, 168, 104, 255};                        //Gateway IP address
+uint8_t IPMask[4] = {255, 255, 255, 0};                        //subnet mask
+uint8_t DESIP[4] = {0, 0, 0, 0};                         //destination IP address
+uint16_t desport = 40003;                                         //destination port
+uint16_t srcport = 40003;                                         //source port
 
-u8 SocketId;
-u8 SocketRecvBuf[WCHNET_MAX_SOCKET_NUM][UDP_REC_BUF_LEN];      //socket receive buffer
-u8 MyBuf[UDP_REC_BUF_LEN];
+// service functions:
+int compareArrays(uint8_t a[], uint8_t b[], int n)
+{
+  for(uint8_t i = 1; i < n; i++)
+  {
+    if (a[i] != b[i]) return 0;
+  }
+  return 1;
+}
 
-parser_ptr parse_frame_func;
 
 void TIM2_Init(void)
 {
@@ -40,9 +42,9 @@ void TIM2_Init(void)
     NVIC_EnableIRQ(TIM2_IRQn);
 }
 
-void ETHERNET_Init(parser_ptr func)
+void ETHERNET_Init()
 {
-    ETHDRV_GetMacAddr(MACAddr);                                //get the chip MAC address
+    ETHDRV_GenerateMacAddr(MACAddr);                                //get the chip MAC address
     printf("mac addr:");
     for(uint8_t i = 0; i < 6; i++)
         printf("%x ",MACAddr[i]);
@@ -50,41 +52,10 @@ void ETHERNET_Init(parser_ptr func)
 
     TIM2_Init();
 
-    uint8_t result = ETHDRV_LibInit(IPAddr, GWIPAddr, IPMask, MACAddr);        //Ethernet library initialize
-//    mStopIfError(result);
+    ETHDRV_Init(IPAddr, GWIPAddr, IPMask, MACAddr);
 
-
-//    if (result == WCHNET_ERR_SUCCESS)
-//        printf("WCHNET_LibInit Success\r\n");
-//
-//    for (u8 i = 0; i < WCHNET_MAX_SOCKET_NUM; i++)
-//        ETHERNET_CreateUdpSocket();
-
-    parse_frame_func = func;
-}
-
-void mStopIfError(u8 iError)
-{
-    if (iError == WCHNET_ERR_SUCCESS)
-        return;
-    printf("Error: %02X\r\n", (u16) iError);
-}
-
-void ETHERNET_CreateUdpSocket(void)
-{
-    SOCK_INF TmpSocketInf;
-
-    memset((void *) &TmpSocketInf, 0, sizeof(SOCK_INF));
-    memcpy((void *) TmpSocketInf.IPAddr, DESIP, 4);
-    TmpSocketInf.DesPort = desport;
-    TmpSocketInf.SourPort = srcport;
-    TmpSocketInf.ProtoType = PROTO_TYPE_UDP;
-    TmpSocketInf.RecvStartPoint = (u32) SocketRecvBuf[SocketId];
-    TmpSocketInf.RecvBufLen = UDP_REC_BUF_LEN;
-    TmpSocketInf.AppCallBack = ETHERNET_UdpRecieve;
-    u8 result = WCHNET_SocketCreat(&SocketId, &TmpSocketInf);
-    printf("WCHNET_SocketCreat %d\r\n", SocketId);
-    mStopIfError(result);
+    ETH->MACA0HR = (uint32_t)MACAddr[5]<<8 | (uint32_t)MACAddr[4];
+    ETH->MACA0LR = (uint32_t)MACAddr[3]<<24 |(uint32_t)MACAddr[2]<<16 |(uint32_t)MACAddr[1]<<8 |(uint32_t)MACAddr[0];
 }
 
 /*********************************************************************
@@ -99,50 +70,65 @@ void ETHERNET_CreateUdpSocket(void)
  *          len - received data length
  * @return  none
  */
-void ETHERNET_UdpRecieve(struct _SCOK_INF *socinf, u32 ipaddr, u16 port, u8 *buf, u32 len)
+//void ETHERNET_UdpRecieve(struct _SCOK_INF *socinf, u32 ipaddr, u16 port, u8 *buf, u32 len)
+//{
+//    GPIO_SetBits(GPIOC, GPIO_Pin_3);
+//    GPIO_SetBits(GPIOC, GPIO_Pin_2);
+//
+//    u8 ip_addr[4], i;
+//
+//    uint32_t outDataLen;
+//
+//    parse_frame_func(buf, len, buf, &outDataLen);
+//    GPIO_ResetBits(GPIOC, GPIO_Pin_2);
+//
+//    WCHNET_SocketUdpSendTo(socinf->SockIndex, buf, &outDataLen, ip_addr, port);
+//    GPIO_ResetBits(GPIOC, GPIO_Pin_3);
+//
+//    printf("Rm IP: ");
+//    for (i = 0; i < 4; i++) {
+//        ip_addr[i] = ipaddr & 0xff;
+//        printf("%d ", ip_addr[i]);
+//        ipaddr = ipaddr >> 8;
+//    }
+//
+//    printf("port = %d len = %d\r\n", port, len);
+//}
+
+void ETHERNET_ParseUdpFrame(const RecievedFrameData* frame)
 {
-    GPIO_SetBits(GPIOC, GPIO_Pin_3);
-    GPIO_SetBits(GPIOC, GPIO_Pin_2);
-
-    u8 ip_addr[4], i;
-
-    uint32_t outDataLen;
-
-    parse_frame_func(buf, len, buf, &outDataLen);
-    GPIO_ResetBits(GPIOC, GPIO_Pin_2);
-
-    WCHNET_SocketUdpSendTo(socinf->SockIndex, buf, &outDataLen, ip_addr, port);
-    GPIO_ResetBits(GPIOC, GPIO_Pin_3);
-
-    printf("Rm IP: ");
-    for (i = 0; i < 4; i++) {
-        ip_addr[i] = ipaddr & 0xff;
-        printf("%d ", ip_addr[i]);
-        ipaddr = ipaddr >> 8;
-    }
-
-    printf("port = %d len = %d\r\n", port, len);
+    printf("UDP frame recieved\r\n");
 }
 
-void ETHERNET_HandleGlobalInt(void)
+void ETHERNET_ParseIcmpFrame(const RecievedFrameData* frame)
 {
-    u8 intState = WCHNET_GetGlobalInt();                       //get global interrupt flag
-    if (intState & GINT_STAT_UNREACH)                          //Unreachable interrupt
-    {
-        printf("GINT_STAT_UNREACH\r\n");
-    }
+    printf("ICMP frame recieved\r\n");
+}
 
-    if (intState & GINT_STAT_IP_CONFLI)                        //IP conflict
-    {
-        printf("GINT_STAT_IP_CONFLI\r\n");
-    }
+void ETHERNET_ParseArpFrame(const RecievedFrameData* frame)
+{
+    ARPFrame parsedFrame, answerFrame;
 
-    if (intState & GINT_STAT_PHY_CHANGE)                       //PHY status change
+    memcpy(parsedFrame.rawData, frame, ARP_FRAME_SIZE);
+
+    if(compareArrays(parsedFrame.structData.targetIpAdr, IPAddr, 4))
     {
-        u16 phyStatus = WCHNET_GetPHYStatus();
-        if (phyStatus & PHY_Linked_Status)
-            printf("PHY Link Success\r\n");
-        else
-            printf("PHY Link lost\r\n");
+        if(parsedFrame.structData.opCode == __builtin_bswap16(ARP_OPCODE_REQUEST))
+        {
+            answerFrame = parsedFrame;
+
+            memcpy(answerFrame.structData.dstMAC, parsedFrame.structData.srcMAC, 6);
+            memcpy(answerFrame.structData.srcMAC, MACAddr, 6);
+
+            answerFrame.structData.opCode = __builtin_bswap16(ARP_OPCODE_REPLY);
+
+            memcpy(answerFrame.structData.targetIpAdr, parsedFrame.structData.senderIpAdr, 4);
+            memcpy(answerFrame.structData.senderIpAdr, IPAddr, 4);
+
+            memcpy(answerFrame.structData.targetHwAdr, parsedFrame.structData.senderHwAdr, 6);
+            memcpy(answerFrame.structData.senderHwAdr, MACAddr, 6);
+
+            ETH_TxPktChainMode(ARP_FRAME_SIZE, answerFrame.rawData);
+        }
     }
 }

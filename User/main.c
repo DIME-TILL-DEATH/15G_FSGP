@@ -105,7 +105,7 @@ int main(void)
 	printf( "ChipID: %08x\r\n", DBGMCU_GetCHIPID() );
 
 	PIN_Init();
-	ETHERNET_Init(parseFrame);
+	ETHERNET_Init();
 
     UART_Init();
     TIM3_Init();
@@ -114,6 +114,45 @@ int main(void)
 	while(1)
     {
         ETHDRV_MainTask();
+
+        if(recievedFrameData.frameLength>0)
+        {
+            GPIO_SetBits(GPIOC, GPIO_Pin_3);
+            GPIO_SetBits(GPIOC, GPIO_Pin_2);
+
+            uint16_t frameType = recievedFrameData.frameData[POS_FRAME_TYPE_HW]<<8 | recievedFrameData.frameData[POS_FRAME_TYPE_LW];
+
+            switch(frameType)
+            {
+            case FRAME_TYPE_ARP:
+                ETHERNET_ParseArpFrame(&recievedFrameData);
+                break;
+
+            case FRAME_TYPE_UDP:
+                ETHERNET_ParseUdpFrame(&recievedFrameData);
+                break;
+            }
+            recievedFrameData.frameLength = 0;
+//            printf("frame type: %x\r\n", frameType);
+
+//            u8 ip_addr[4], i;
+
+//            uint32_t outDataLen;
+
+            //parse_frame_func(buf, len, buf, &outDataLen);
+            GPIO_ResetBits(GPIOC, GPIO_Pin_2);
+
+            //WCHNET_SocketUdpSendTo(socinf->SockIndex, buf, &outDataLen, ip_addr, port);
+            GPIO_ResetBits(GPIOC, GPIO_Pin_3);
+
+//            printf("Rec MAC: ");
+//            for (i = 0; i < 6; i++) {
+//                printf("%x ", recievedFrameData.frameData[i]);
+//            }
+//
+//            printf(" len = %d\r\n", recievedFrameData.frameLength);
+//            recievedFrameData.frameLength = 0;
+        }
 //        if(WCHNET_QueryGlobalInt())
 //        {
 //            ETHERNET_HandleGlobalInt();
@@ -163,8 +202,12 @@ void EXTI0_IRQHandler(void)
     EXTI_ClearITPendingBit(EXTI_Line0);
     printf("INP recieved. Commands left in buffer: %d\r\n", CommFIFO_Count());
 
-    printf("MAC control reg: %x\r\n", ETH->MACCR);
-//    printf("MAC filter reg: %x\r\n", ETH->MACFFR);
+//    printf("MAC control reg: %x\r\n", ETH->MACCR);
+    printf("MAC filter reg: %x\r\n", ETH->MACFFR);
+    printf("MAC ADDR0: %x%x\r\n", ETH->MACA0HR, ETH->MACA0LR);
+    printf("MAC ADDRH1: %x\r\n", ETH->MACA1HR);
+    printf("MAC ADDRH2: %x\r\n", ETH->MACA2HR);
+    printf("MAC ADDRH2: %x\r\n", ETH->MACA3HR);
 //
     printf("CRC error frames: %d\r\n", ETH->MMCRFCECR);
     printf("Alignment error frames: %d\r\n", ETH->MMCRFAECR);

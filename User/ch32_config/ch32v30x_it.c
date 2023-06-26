@@ -10,7 +10,6 @@
 * microcontroller manufactured by Nanjing Qinheng Microelectronics.
 *******************************************************************************/
 
-#include <wchnet.h>
 #include "eth_driver.h"
 #include "ch32v30x_it.h"
 
@@ -69,16 +68,9 @@ void EXTI9_5_IRQHandler(void)
 void ETH_IRQHandler(void)
 {
     GPIO_SetBits(GPIOC, GPIO_Pin_3);
+
     ETHDRV_ETHIsr();
 
-    uint8_t recBuf[1024]={0};
-    uint32_t result = ETH_HandleRxPkt(recBuf);
-    printf("Result: %d, MAC:%x%x%x%x%x%x\r\n", result, recBuf[0],
-            recBuf[1],
-            recBuf[2],
-            recBuf[3],
-            recBuf[4],
-            recBuf[5]);
     GPIO_ResetBits(GPIOC, GPIO_Pin_3);
 }
 

@@ -17,7 +17,7 @@
 #endif 
 
 #include "debug.h"
-#include "wchnet.h"
+#include "net_config.h"
 
 #define USE_10M_BASE                            1  /* Internal 10M PHY */
 #define USE_MAC_MII                             2
@@ -111,20 +111,28 @@
     }\
 }while(0)
 
+typedef struct
+{
+    uint8_t frameData[256];
+    uint16_t frameLength;
+}RecievedFrameData;
+
 extern ETH_DMADESCTypeDef *DMATxDescToSet;
 extern ETH_DMADESCTypeDef *DMARxDescToGet;
-extern SOCK_INF SocketInf[ ];
 
-void ETHDRV_PHYLink( void );
-void ETHDRV_ETHIsr( void );
-void ETHDRV_MainTask( void );
-void ETHDRV_LedConfiguration(void);
-void ETHDRV_Init( uint8_t *macAddr );
-void ETHDRV_LedLinkSet( uint8_t mode );
-void ETHDRV_LedDataSet( uint8_t mode );
-void ETHDRV_TimeIsr( uint16_t timperiod );
-void ETHDRV_Configuration( uint8_t *macAddr );
-uint8_t ETHDRV_LibInit( uint8_t *ip, uint8_t *gwip, uint8_t *mask, uint8_t *macaddr);
+extern RecievedFrameData recievedFrameData;
+
+void ETHDRV_GenerateMacAddr(uint8_t *p);
+
+void ETHDRV_PHYLink();
+void ETHDRV_ETHIsr();
+void ETHDRV_MainTask();
+void ETHDRV_LedConfiguration();
+void ETHDRV_Init(uint8_t *ip, uint8_t *gwip, uint8_t *mask, uint8_t *macAddr);
+void ETHDRV_LedLinkSet(uint8_t mode);
+void ETHDRV_LedDataSet(uint8_t mode);
+void ETHDRV_TimeIsr(uint16_t timperiod);
+void ETHDRV_Configuration(uint8_t *macAddr);
 
 #ifdef __cplusplus
 }
