@@ -118,7 +118,6 @@ int main(void)
         if(recievedFrameData.frameLength>0)
         {
             GPIO_SetBits(GPIOC, GPIO_Pin_3);
-            GPIO_SetBits(GPIOC, GPIO_Pin_2);
 
             uint16_t frameType = recievedFrameData.frameData[POS_FRAME_TYPE_HW]<<8 | recievedFrameData.frameData[POS_FRAME_TYPE_LW];
 
@@ -133,30 +132,9 @@ int main(void)
                 break;
             }
             recievedFrameData.frameLength = 0;
-//            printf("frame type: %x\r\n", frameType);
 
-//            u8 ip_addr[4], i;
-
-//            uint32_t outDataLen;
-
-            //parse_frame_func(buf, len, buf, &outDataLen);
-            GPIO_ResetBits(GPIOC, GPIO_Pin_2);
-
-            //WCHNET_SocketUdpSendTo(socinf->SockIndex, buf, &outDataLen, ip_addr, port);
             GPIO_ResetBits(GPIOC, GPIO_Pin_3);
-
-//            printf("Rec MAC: ");
-//            for (i = 0; i < 6; i++) {
-//                printf("%x ", recievedFrameData.frameData[i]);
-//            }
-//
-//            printf(" len = %d\r\n", recievedFrameData.frameLength);
-//            recievedFrameData.frameLength = 0;
         }
-//        if(WCHNET_QueryGlobalInt())
-//        {
-//            ETHERNET_HandleGlobalInt();
-//        }
 	}
 }
 
