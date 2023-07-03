@@ -5,7 +5,7 @@
 
 void mConvertEndians(Command_Frame* comm);
 
-void parseFrame(uint8_t* inData, uint32_t inDataLen, uint8_t* outData, uint32_t* outDataLen)
+void parseFrame(const uint8_t* inData, uint32_t inDataLen, uint8_t* outData, uint32_t* outDataLen)
 {
     *outDataLen = 0;
 

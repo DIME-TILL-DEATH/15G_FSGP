@@ -134,6 +134,8 @@ void ETHDRV_LedDataSet(uint8_t mode);
 void ETHDRV_TimeIsr(uint16_t timperiod);
 void ETHDRV_Configuration(uint8_t *macAddr);
 
+uint32_t ETH_TxPktChainMode(uint16_t len, uint8_t *pBuff);
+
 #ifdef __cplusplus
 }
 #endif

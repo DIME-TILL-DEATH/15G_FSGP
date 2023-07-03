@@ -120,6 +120,7 @@ int main(void)
             GPIO_SetBits(GPIOC, GPIO_Pin_3);
 
             uint16_t frameType = recievedFrameData.frameData[POS_FRAME_TYPE_HW]<<8 | recievedFrameData.frameData[POS_FRAME_TYPE_LW];
+            uint8_t ipProtocolType = recievedFrameData.frameData[POS_PROTOCOL];
 
             switch(frameType)
             {
@@ -127,8 +128,12 @@ int main(void)
                 ETHERNET_ParseArpFrame(&recievedFrameData);
                 break;
 
-            case FRAME_TYPE_UDP:
-                ETHERNET_ParseUdpFrame(&recievedFrameData);
+            case FRAME_TYPE_IPv4:
+                switch(ipProtocolType)
+                {
+                case IPv4_PROTOCOL_UDP: ETHERNET_ParseUdpFrame(&recievedFrameData); break;
+                case IPv4_PROTOCOL_ICMP: ETHERNET_ParseIcmpFrame(&recievedFrameData); break;
+                }
                 break;
             }
             recievedFrameData.frameLength = 0;
@@ -180,26 +185,9 @@ void EXTI0_IRQHandler(void)
     EXTI_ClearITPendingBit(EXTI_Line0);
     printf("INP recieved. Commands left in buffer: %d\r\n", CommFIFO_Count());
 
-//    printf("MAC control reg: %x\r\n", ETH->MACCR);
-    printf("MAC filter reg: %x\r\n", ETH->MACFFR);
-    printf("MAC ADDR0: %x%x\r\n", ETH->MACA0HR, ETH->MACA0LR);
-    printf("MAC ADDRH1: %x\r\n", ETH->MACA1HR);
-    printf("MAC ADDRH2: %x\r\n", ETH->MACA2HR);
-    printf("MAC ADDRH2: %x\r\n", ETH->MACA3HR);
+
 //
     printf("CRC error frames: %d\r\n", ETH->MMCRFCECR);
     printf("Alignment error frames: %d\r\n", ETH->MMCRFAECR);
     printf("Good frames: %d\r\n", ETH->MMCRGUFCR);
-//
-//    for(uint8_t regAddr = 0; regAddr<7; regAddr++)
-//    {
-//        uint32_t regData = ETH_ReadPHYRegister(1, regAddr);
-//        printf("PHY %d, data reg0: %04x\r\n", regAddr, regData);
-//
-//        uint8_t data[2048] = {0};
-//        uint32_t outDataLen = 32;
-//        u8 IPAddr[4] = {192,168,1,10};
-//
-//        WCHNET_SocketUdpSendTo(0, data, &outDataLen, IPAddr, 8080);
-//    }
 }

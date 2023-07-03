@@ -44,7 +44,7 @@ static uint16_t computeIpChecksum(uint8_t *addr, uint16_t count)
   return ((uint16_t)sum);
 }
 
-static uint16_t computeUdpChecksum(const UDPFrame* frameHeader, uint8_t *payloadAddr, uint16_t payloadSize)
+uint16_t computeUdpChecksum(const UDPFrame* frameHeader, uint8_t *payloadAddr, uint16_t payloadSize)
 {
     uint8_t frameBuf[256]= {0};
 
@@ -106,6 +106,64 @@ void ETHERNET_Init()
     ETH->MACA0LR = (uint32_t)MACAddr[3]<<24 |(uint32_t)MACAddr[2]<<16 |(uint32_t)MACAddr[1]<<8 |(uint32_t)MACAddr[0];
 }
 
+void ETHERNET_ParseArpFrame(const RecievedFrameData* frame)
+{
+    ARPFrame parsedFrame, answerFrame;
+
+    memcpy(parsedFrame.rawData, frame, ARP_FULL_HEADER_SIZE);
+
+    if(compareArrays(parsedFrame.structData.targetIpAdr, IPAddr, 4))
+    {
+        if(parsedFrame.structData.opCode == __builtin_bswap16(ARP_OPCODE_REQUEST))
+        {
+            answerFrame = parsedFrame;
+
+            memcpy(answerFrame.structData.dstMAC, parsedFrame.structData.srcMAC, 6);
+            memcpy(answerFrame.structData.srcMAC, MACAddr, 6);
+
+            answerFrame.structData.opCode = __builtin_bswap16(ARP_OPCODE_REPLY);
+
+            memcpy(answerFrame.structData.targetIpAdr, parsedFrame.structData.senderIpAdr, 4);
+            memcpy(answerFrame.structData.senderIpAdr, IPAddr, 4);
+
+            memcpy(answerFrame.structData.targetHwAdr, parsedFrame.structData.senderHwAdr, 6);
+            memcpy(answerFrame.structData.senderHwAdr, MACAddr, 6);
+
+            ETH_TxPktChainMode(ARP_FULL_HEADER_SIZE, answerFrame.rawData);
+        }
+    }
+}
+
+void ETHERNET_ParseIcmpFrame(const RecievedFrameData* frame)
+{
+    ICMPFrame parsedFrame, answerFrame;
+
+    memcpy(parsedFrame.rawData, frame, ICMP_FULL_HEADER_SIZE);
+
+    if(parsedFrame.structData.icmpType == ICMP_TYPE_ECHO_REQUEST)
+    {
+        if(compareArrays(parsedFrame.structData.dstIpAddress, IPAddr, 4))
+        {
+            answerFrame = parsedFrame;
+
+            memcpy(answerFrame.structData.srcMAC, MACAddr, 6);
+            memcpy(answerFrame.structData.dstMAC, parsedFrame.structData.srcMAC, 6);
+
+            memcpy(answerFrame.structData.srcIpAddress, IPAddr, 4);
+            memcpy(answerFrame.structData.dstIpAddress, parsedFrame.structData.srcIpAddress, 4);
+
+            answerFrame.structData.icmpType = ICMP_TYPE_ECHO_ANSWER;
+
+            answerFrame.structData.icmpChecksum = 0;
+            uint16_t checksum = computeIpChecksum(&(answerFrame.rawData[ETHERNETII_HEADER_SIZE + IP_HEADER_SIZE]),
+                                                    ICMP_FULL_HEADER_SIZE - ETHERNETII_HEADER_SIZE - IP_HEADER_SIZE);
+            answerFrame.structData.icmpChecksum = __builtin_bswap16(checksum);
+
+            ETH_TxPktChainMode(ICMP_FULL_HEADER_SIZE, answerFrame.rawData);
+        }
+    }
+}
+
 void ETHERNET_ParseUdpFrame(const RecievedFrameData* frame)
 {
     UDPFrame parsedFrameHeader, answerFrameHeader;
@@ -114,9 +172,6 @@ void ETHERNET_ParseUdpFrame(const RecievedFrameData* frame)
 
     uint8_t srcIp[4] = {0};
     uint8_t dstIp[4] = {0};
-    uint16_t srcPort = __builtin_bswap16(parsedFrameHeader.structData.srcPort);
-    uint16_t dstPort = __builtin_bswap16(parsedFrameHeader.structData.dstPort);
-    uint16_t udpLength = __builtin_bswap16(parsedFrameHeader.structData.udpLength);
 
     memcpy(srcIp, parsedFrameHeader.structData.srcIpAddress, 4);
     memcpy(dstIp, parsedFrameHeader.structData.dstIpAddress, 4);
@@ -168,41 +223,7 @@ void ETHERNET_ParseUdpFrame(const RecievedFrameData* frame)
 
             memcpy(answer, answerFrameHeader.rawData, UDP_FULL_HEADER_SIZE);
 
-
             ETH_TxPktChainMode(totalAnswerLen, answer);
-        }
-    }
-}
-
-void ETHERNET_ParseIcmpFrame(const RecievedFrameData* frame)
-{
-    printf("ICMP frame recieved\r\n");
-}
-
-void ETHERNET_ParseArpFrame(const RecievedFrameData* frame)
-{
-    ARPFrame parsedFrame, answerFrame;
-
-    memcpy(parsedFrame.rawData, frame, ARP_FRAME_SIZE);
-
-    if(compareArrays(parsedFrame.structData.targetIpAdr, IPAddr, 4))
-    {
-        if(parsedFrame.structData.opCode == __builtin_bswap16(ARP_OPCODE_REQUEST))
-        {
-            answerFrame = parsedFrame;
-
-            memcpy(answerFrame.structData.dstMAC, parsedFrame.structData.srcMAC, 6);
-            memcpy(answerFrame.structData.srcMAC, MACAddr, 6);
-
-            answerFrame.structData.opCode = __builtin_bswap16(ARP_OPCODE_REPLY);
-
-            memcpy(answerFrame.structData.targetIpAdr, parsedFrame.structData.senderIpAdr, 4);
-            memcpy(answerFrame.structData.senderIpAdr, IPAddr, 4);
-
-            memcpy(answerFrame.structData.targetHwAdr, parsedFrame.structData.senderHwAdr, 6);
-            memcpy(answerFrame.structData.senderHwAdr, MACAddr, 6);
-
-            ETH_TxPktChainMode(ARP_FRAME_SIZE, answerFrame.rawData);
         }
     }
 }

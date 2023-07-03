@@ -659,7 +659,7 @@ uint32_t ETHDRV_RegInit(ETH_InitTypeDef* ETH_InitStruct, uint16_t PHYAddress)
  *
  * @return  Send status.
  */
-uint32_t ETH_TxPktChainMode(uint16_t len, uint32_t *pBuff)
+uint32_t ETH_TxPktChainMode(uint16_t len, uint8_t *pBuff)
 {
     /* Check if the descriptor is owned by the ETHERNET DMA (when set) or CPU (when reset) */
     if((DMATxDescToSet->Status & ETH_DMATxDesc_OWN) != (u32)RESET)
