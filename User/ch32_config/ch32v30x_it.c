@@ -10,7 +10,6 @@
 * microcontroller manufactured by Nanjing Qinheng Microelectronics.
 *******************************************************************************/
 
-#include <wchnet.h>
 #include "eth_driver.h"
 #include "ch32v30x_it.h"
 
@@ -68,7 +67,11 @@ void EXTI9_5_IRQHandler(void)
  */
 void ETH_IRQHandler(void)
 {
+   if(ETH->DMASR & ETH_DMA_IT_R) GPIO_SetBits(GPIOC, GPIO_Pin_3);
+
     ETHDRV_ETHIsr();
+
+    GPIO_ResetBits(GPIOC, GPIO_Pin_3);
 }
 
 /*********************************************************************
@@ -81,6 +84,6 @@ void ETH_IRQHandler(void)
 void TIM2_IRQHandler(void)
 {
     ETHDRV_TimeIsr(WCHNETTIMERPERIOD);
-    TIM_ClearITPendingBit(TIM2, TIM_IT_Update  );
+    TIM_ClearITPendingBit(TIM2, TIM_IT_Update);
 }
 

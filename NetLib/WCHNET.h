@@ -272,7 +272,7 @@ uint8_t WCHNET_GetVer(void);
  *
  * @return  None
  */
-void ETHDRV_GetMacAddr(uint8_t *macaddr);
+void ETHDRV_GenerateMacAddr(uint8_t *macaddr);
 
 /**
  * @brief   Library parameter configuration.

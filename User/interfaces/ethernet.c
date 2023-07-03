@@ -1,26 +1,76 @@
-#include "string.h"
+#include <string.h>
 
 #include "ethernet.h"
 
-// Only for this file
-static void mStopIfError(u8 iError);
-void ETHERNET_CreateUdpSocket(void);
-void ETHERNET_UdpServerRecv(struct _SCOK_INF *socinf, u32 ipaddr, u16 port, u8 *buf, u32 len);
+#include "frame_parser.h"
 
 #define UDP_REC_BUF_LEN                1472
-u8 MACAddr[6];                                              //MAC address
-u8 IPAddr[4] = { 192, 168, 104, 10 };                         //IP address
-u8 GWIPAddr[4] = { 192, 168, 104, 255 };                        //Gateway IP address
-u8 IPMask[4] = { 255, 255, 255, 0 };                        //subnet mask
-u8 DESIP[4] = { 0, 0, 0, 0 };                         //destination IP address
-u16 desport = 40003;                                         //destination port
-u16 srcport = 40003;                                         //source port
+uint8_t MACAddr[6];                                              //MAC address
+uint8_t IPAddr[4] = {192, 168, 104, 10};                         //IP address
+uint8_t GWIPAddr[4] = {192, 168, 104, 255};                        //Gateway IP address
+uint8_t IPMask[4] = {255, 255, 255, 0};                        //subnet mask
+uint8_t DESIP[4] = {0, 0, 0, 0};                         //destination IP address
+uint16_t desport = 40003;                                         //destination port
+uint16_t srcport = 40003;                                         //source port
 
-u8 SocketId;
-u8 SocketRecvBuf[WCHNET_MAX_SOCKET_NUM][UDP_REC_BUF_LEN];      //socket receive buffer
-u8 MyBuf[UDP_REC_BUF_LEN];
+// service functions:
+/* Compute checksum for count bytes starting at addr, using one's complement of one's complement sum*/
+static uint16_t computeIpChecksum(uint8_t *addr, uint16_t count)
+{
+  uint32_t sum = 0;
+  uint16_t word16 = 0;
 
-parser_ptr parse_frame_func;
+  while(count > 1)
+  {
+    word16 = *addr<<8 | *(addr+1);
+    sum += word16;
+    count -= 2;
+    addr += 2;
+  }
+
+  //if any bytes left, pad the bytes and add
+  if(count > 0)
+  {
+    sum += ((*addr)<<8 | 0x00);
+  }
+
+  //Fold sum to 16 bits: add carrier to result
+  while (sum>>16)
+  {
+      sum = (sum & 0xffff) + (sum >> 16);
+  }
+  //one's complement
+  sum = ~sum;
+  return ((uint16_t)sum);
+}
+
+uint16_t computeUdpChecksum(const UDPFrame* frameHeader, uint8_t *payloadAddr, uint16_t payloadSize)
+{
+    uint8_t frameBuf[256]= {0};
+
+    memcpy(&(frameBuf[0]), frameHeader->structData.srcIpAddress, 4);
+    memcpy(&(frameBuf[4]), frameHeader->structData.dstIpAddress, 4);
+    frameBuf[9] = frameHeader->structData.protocol;
+
+    uint16_t pseudoHdrLen = __builtin_bswap16(frameHeader->structData.ipTotalLength) - IP_HEADER_SIZE;
+    frameBuf[10] = (pseudoHdrLen & 0xFF00) >> 8;
+    frameBuf[11] = pseudoHdrLen & 0xFF;
+
+    memcpy(&(frameBuf[12]), &(frameHeader->rawData[ETHERNETII_HEADER_SIZE+IP_HEADER_SIZE]), UDP_ONLY_HEADER_SIZE);
+    memcpy(&(frameBuf[20]), payloadAddr, payloadSize);
+
+    return computeIpChecksum(frameBuf, UDP_ONLY_HEADER_SIZE + UDP_PSEUDO_HEADER_SIZE + payloadSize);
+}
+
+int compareArrays(uint8_t a[], uint8_t b[], int n)
+{
+  for(uint8_t i = 1; i < n; i++)
+  {
+    if (a[i] != b[i]) return 0;
+  }
+  return 1;
+}
+
 
 void TIM2_Init(void)
 {
@@ -40,9 +90,9 @@ void TIM2_Init(void)
     NVIC_EnableIRQ(TIM2_IRQn);
 }
 
-void ETHERNET_Init(parser_ptr func)
+void ETHERNET_Init()
 {
-    ETHDRV_GetMacAddr(MACAddr);                                //get the chip MAC address
+    ETHDRV_GenerateMacAddr(MACAddr);                                //get the chip MAC address
     printf("mac addr:");
     for(uint8_t i = 0; i < 6; i++)
         printf("%x ",MACAddr[i]);
@@ -50,96 +100,130 @@ void ETHERNET_Init(parser_ptr func)
 
     TIM2_Init();
 
-    uint8_t result = ETHDRV_LibInit(IPAddr, GWIPAddr, IPMask, MACAddr);        //Ethernet library initialize
-    mStopIfError(result);
+    ETHDRV_Init(IPAddr, GWIPAddr, IPMask, MACAddr);
 
-    if (result == WCHNET_ERR_SUCCESS)
-        printf("WCHNET_LibInit Success\r\n");
-
-    for (u8 i = 0; i < WCHNET_MAX_SOCKET_NUM; i++)
-        ETHERNET_CreateUdpSocket();
-
-    parse_frame_func = func;
+    ETH->MACA0HR = (uint32_t)MACAddr[5]<<8 | (uint32_t)MACAddr[4];
+    ETH->MACA0LR = (uint32_t)MACAddr[3]<<24 |(uint32_t)MACAddr[2]<<16 |(uint32_t)MACAddr[1]<<8 |(uint32_t)MACAddr[0];
 }
 
-void mStopIfError(u8 iError)
+void ETHERNET_ParseArpFrame(const RecievedFrameData* frame)
 {
-    if (iError == WCHNET_ERR_SUCCESS)
-        return;
-    printf("Error: %02X\r\n", (u16) iError);
-}
+    ARPFrame parsedFrame, answerFrame;
 
-void ETHERNET_CreateUdpSocket(void)
-{
-    SOCK_INF TmpSocketInf;
+    memcpy(parsedFrame.rawData, frame, ARP_FULL_HEADER_SIZE);
 
-    memset((void *) &TmpSocketInf, 0, sizeof(SOCK_INF));
-    memcpy((void *) TmpSocketInf.IPAddr, DESIP, 4);
-    TmpSocketInf.DesPort = desport;
-    TmpSocketInf.SourPort = srcport;
-    TmpSocketInf.ProtoType = PROTO_TYPE_UDP;
-    TmpSocketInf.RecvStartPoint = (u32) SocketRecvBuf[SocketId];
-    TmpSocketInf.RecvBufLen = UDP_REC_BUF_LEN;
-    TmpSocketInf.AppCallBack = ETHERNET_UdpServerRecv;
-    u8 result = WCHNET_SocketCreat(&SocketId, &TmpSocketInf);
-    printf("WCHNET_SocketCreat %d\r\n", SocketId);
-    mStopIfError(result);
-}
-
-/*********************************************************************
- * @fn      ETHERNET_UdpServerRecv
- *
- * @brief   UDP Receive data function
- *
- *@param    socinf - socket information.
- *          ipaddr - The IP address from which the data was sent
- *          port - source port
- *          buf - pointer to the data buffer
- *          len - received data length
- * @return  none
- */
-void ETHERNET_UdpServerRecv(struct _SCOK_INF *socinf, u32 ipaddr, u16 port, u8 *buf, u32 len)
-{
-    GPIO_SetBits(GPIOC, GPIO_Pin_2);
-
-    u8 ip_addr[4], i;
-
-    uint32_t outDataLen;
-
-    parse_frame_func(buf, len, buf, &outDataLen);
-    GPIO_ResetBits(GPIOC, GPIO_Pin_2);
-
-    WCHNET_SocketUdpSendTo(socinf->SockIndex, buf, &outDataLen, ip_addr, port);
-
-    printf("Rm IP: ");
-    for (i = 0; i < 4; i++) {
-        ip_addr[i] = ipaddr & 0xff;
-        printf("%d ", ip_addr[i]);
-        ipaddr = ipaddr >> 8;
-    }
-
-    printf("port = %d len = %d\r\n", port, len);
-}
-
-void ETHERNET_HandleGlobalInt(void)
-{
-    u8 intState = WCHNET_GetGlobalInt();                       //get global interrupt flag
-    if (intState & GINT_STAT_UNREACH)                          //Unreachable interrupt
+    if(compareArrays(parsedFrame.structData.targetIpAdr, IPAddr, 4))
     {
-        printf("GINT_STAT_UNREACH\r\n");
-    }
+        if(parsedFrame.structData.opCode == __builtin_bswap16(ARP_OPCODE_REQUEST))
+        {
+            answerFrame = parsedFrame;
 
-    if (intState & GINT_STAT_IP_CONFLI)                        //IP conflict
-    {
-        printf("GINT_STAT_IP_CONFLI\r\n");
-    }
+            memcpy(answerFrame.structData.dstMAC, parsedFrame.structData.srcMAC, 6);
+            memcpy(answerFrame.structData.srcMAC, MACAddr, 6);
 
-    if (intState & GINT_STAT_PHY_CHANGE)                       //PHY status change
+            answerFrame.structData.opCode = __builtin_bswap16(ARP_OPCODE_REPLY);
+
+            memcpy(answerFrame.structData.targetIpAdr, parsedFrame.structData.senderIpAdr, 4);
+            memcpy(answerFrame.structData.senderIpAdr, IPAddr, 4);
+
+            memcpy(answerFrame.structData.targetHwAdr, parsedFrame.structData.senderHwAdr, 6);
+            memcpy(answerFrame.structData.senderHwAdr, MACAddr, 6);
+
+            ETH_TxPktChainMode(ARP_FULL_HEADER_SIZE, answerFrame.rawData);
+        }
+    }
+}
+
+void ETHERNET_ParseIcmpFrame(const RecievedFrameData* frame)
+{
+    ICMPFrame parsedFrame, answerFrame;
+
+    memcpy(parsedFrame.rawData, frame, ICMP_FULL_HEADER_SIZE);
+
+    if(parsedFrame.structData.icmpType == ICMP_TYPE_ECHO_REQUEST)
     {
-        u16 phyStatus = WCHNET_GetPHYStatus();
-        if (phyStatus & PHY_Linked_Status)
-            printf("PHY Link Success\r\n");
-        else
-            printf("PHY Link lost\r\n");
+        if(compareArrays(parsedFrame.structData.dstIpAddress, IPAddr, 4))
+        {
+            answerFrame = parsedFrame;
+
+            memcpy(answerFrame.structData.srcMAC, MACAddr, 6);
+            memcpy(answerFrame.structData.dstMAC, parsedFrame.structData.srcMAC, 6);
+
+            memcpy(answerFrame.structData.srcIpAddress, IPAddr, 4);
+            memcpy(answerFrame.structData.dstIpAddress, parsedFrame.structData.srcIpAddress, 4);
+
+            answerFrame.structData.icmpType = ICMP_TYPE_ECHO_ANSWER;
+
+            answerFrame.structData.icmpChecksum = 0;
+            uint16_t checksum = computeIpChecksum(&(answerFrame.rawData[ETHERNETII_HEADER_SIZE + IP_HEADER_SIZE]),
+                                                    ICMP_FULL_HEADER_SIZE - ETHERNETII_HEADER_SIZE - IP_HEADER_SIZE);
+            answerFrame.structData.icmpChecksum = __builtin_bswap16(checksum);
+
+            ETH_TxPktChainMode(ICMP_FULL_HEADER_SIZE, answerFrame.rawData);
+        }
+    }
+}
+
+void ETHERNET_ParseUdpFrame(const RecievedFrameData* frame)
+{
+    UDPFrame parsedFrameHeader, answerFrameHeader;
+
+    memcpy(parsedFrameHeader.rawData, frame, UDP_FULL_HEADER_SIZE);
+
+    uint8_t srcIp[4] = {0};
+    uint8_t dstIp[4] = {0};
+
+    memcpy(srcIp, parsedFrameHeader.structData.srcIpAddress, 4);
+    memcpy(dstIp, parsedFrameHeader.structData.dstIpAddress, 4);
+
+    if(compareArrays(dstIp, IPAddr, 4))
+    {
+        answerFrameHeader = parsedFrameHeader;
+
+//        printf("dst IP: ");
+//        for (uint8_t i = 0; i < 4; i++)
+//        {
+//            printf("%d ", dstIp[i]);
+//        }
+//        printf("\r\n");
+//            printf("port = %d len = %d\r\n", dstPort, udpLength);
+
+        uint8_t answer[512];
+        uint32_t outDataLen;
+
+
+        parseFrame(&(frame->frameData[UDP_PAYLOAD_POSITION]), NUM_PROTOCOL_BYTES, &(answer[UDP_PAYLOAD_POSITION]), &outDataLen);
+
+        if(outDataLen > 0)
+        {
+            uint16_t totalAnswerLen = UDP_FULL_HEADER_SIZE+outDataLen;
+
+            memcpy(answerFrameHeader.structData.srcMAC, MACAddr, 6);
+            memcpy(answerFrameHeader.structData.dstMAC, parsedFrameHeader.structData.srcMAC, 6);
+
+            answerFrameHeader.structData.ipTotalLength = __builtin_bswap16(totalAnswerLen - ETHERNETII_HEADER_SIZE);
+
+            memcpy(answerFrameHeader.structData.srcIpAddress, IPAddr, 4);
+            memcpy(answerFrameHeader.structData.dstIpAddress, parsedFrameHeader.structData.srcIpAddress, 4);
+
+            answerFrameHeader.structData.srcPort = __builtin_bswap16(srcport);
+            answerFrameHeader.structData.dstPort = parsedFrameHeader.structData.srcPort;
+
+            answerFrameHeader.structData.udpLength = __builtin_bswap16(outDataLen + UDP_ONLY_HEADER_SIZE);
+
+            answerFrameHeader.structData.checksum = 0;
+            uint16_t checkSumIp = computeIpChecksum(&(answerFrameHeader.rawData[ETHERNETII_HEADER_SIZE]), IP_HEADER_SIZE);
+            answerFrameHeader.structData.checksum = __builtin_bswap16(checkSumIp);
+
+            answerFrameHeader.structData.udpCheckSum = 0;
+            /* commented in case of perfomance. Computing UDP checksum request 10us. All other operations reques 15us
+            uint16_t checkSumUdp = computeUdpChecksum(&answerFrameHeader, &(answer[UDP_PAYLOAD_POSITION]), outDataLen);
+            answerFrameHeader.structData.udpCheckSum = __builtin_bswap16(checkSumUdp);
+            */
+
+            memcpy(answer, answerFrameHeader.rawData, UDP_FULL_HEADER_SIZE);
+
+            ETH_TxPktChainMode(totalAnswerLen, answer);
+        }
     }
 }

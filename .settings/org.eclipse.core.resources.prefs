@@ -8,6 +8,7 @@ encoding//NetLib/WCHNET.h=GBK
 encoding//NetLib/eth_driver.c=GBK
 encoding//NetLib/eth_driver.h=GBK
 encoding//Peripheral/inc/ch32v30x.h=GBK
+encoding//Peripheral/inc/ch32v30x_adc.h=GBK
 encoding//Peripheral/inc/ch32v30x_bkp.h=GBK
 encoding//Peripheral/inc/ch32v30x_dma.h=GBK
 encoding//Peripheral/inc/ch32v30x_eth.h=GBK
