@@ -142,6 +142,7 @@ typedef union
 void ETHERNET_ParseUdpFrame(const RecievedFrameData* frame);
 void ETHERNET_ParseIcmpFrame(const RecievedFrameData* frame);
 void ETHERNET_ParseArpFrame(const RecievedFrameData* frame);
+void ETHERNET_SendFdkFrame();
 
 void ETHERNET_Init();
 void ETHERNET_HandleGlobalInt();

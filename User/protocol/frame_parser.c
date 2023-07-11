@@ -38,3 +38,14 @@ void mConvertEndians(Command_Frame* comm)
     comm->TVRS = __builtin_bswap32(comm->TVRS);
     comm->index = __builtin_bswap32(comm->index);
 }
+
+void getFdkPayload(uint8_t* data_ptr, uint16_t* dataLen_ptr)
+{
+    if(data_ptr)
+    {
+        // dummy
+        for(int i=0; i<132; i++)
+            data_ptr[i] = i;
+    }
+    if(dataLen_ptr) *dataLen_ptr = 32;
+}

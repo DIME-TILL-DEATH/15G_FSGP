@@ -15,6 +15,7 @@
 #include "frame_parser.h"
 
 void EXTI0_IRQHandler(void)  __attribute__((interrupt("WCH-Interrupt-fast")));
+void EXTI15_10_IRQHandler(void)  __attribute__((interrupt(/*"WCH-Interrupt-fast"*/)));
 void TIM3_IRQHandler(void)  __attribute__((interrupt(/*"WCH-Interrupt-fast"*/)));
 
 bool ledState=0;
@@ -51,7 +52,12 @@ void PIN_Init()
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
     GPIO_Init(GPIOD, &GPIO_InitStructure);
 
+    // Key - NP & STROBE
     GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+    GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_14;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
     GPIO_Init(GPIOA, &GPIO_InitStructure);
 
@@ -66,6 +72,7 @@ void INT_Init()
 {
     EXTI_InitTypeDef EXTI_InitStructure = {0};
 
+    GPIO_EXTILineConfig(GPIO_PortSourceGPIOA, GPIO_PinSource0); //PA0 - NP
     EXTI_InitStructure.EXTI_Line = EXTI_Line0;
     EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
     EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising;
@@ -73,7 +80,22 @@ void INT_Init()
 
     EXTI_Init(&EXTI_InitStructure);
 
+//    NVIC_InitStructure.NVIC_IRQChannel = EXTI0_IRQn;
+//    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
+//    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;
+//    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+//    NVIC_Init(&NVIC_InitStructure);
+
+    GPIO_EXTILineConfig(GPIO_PortSourceGPIOA, GPIO_PinSource14); //PA14 - STROBE
+    EXTI_InitStructure.EXTI_Line = EXTI_Line14;
+    EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
+    EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising;
+    EXTI_InitStructure.EXTI_LineCmd = ENABLE;
+
+    EXTI_Init(&EXTI_InitStructure);
+
     NVIC_EnableIRQ(EXTI0_IRQn);
+    NVIC_EnableIRQ(EXTI15_10_IRQn);
 }
 
 void TIM3_Init(void)
@@ -83,7 +105,7 @@ void TIM3_Init(void)
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
 
     TIM_TimeBaseStructure.TIM_Period = SystemCoreClock;
-    TIM_TimeBaseStructure.TIM_Prescaler = 2880;
+    TIM_TimeBaseStructure.TIM_Prescaler = 10000; //2880;
     TIM_TimeBaseStructure.TIM_ClockDivision = 0;
     TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
     TIM_TimeBaseInit(TIM3, &TIM_TimeBaseStructure);
@@ -110,6 +132,13 @@ int main(void)
     UART_Init();
     TIM3_Init();
     INT_Init();
+
+    NVIC_SetPriority(TIM3_IRQn,   (3<<5) | (0x01<<4));/* Group priority 3, lower overall priority */
+    NVIC_SetPriority(ETH_IRQn, (2<<5) | (0x01<<4));
+    NVIC_SetPriority(EXTI15_10_IRQn, (1<<5) | (0x01<<4));
+    NVIC_SetPriority(EXTI0_IRQn, (0<<5) | (0x01<<4));/* Group priority 0, overall priority is higher */
+
+    printf("NVIC priorities EXTI: %x, ETH: %x, TIM3: %x\r\n", NVIC->IPRIOR[EXTI0_IRQn], NVIC->IPRIOR[ETH_IRQn], NVIC->IPRIOR[TIM3_IRQn]);
 
 	while(1)
     {
@@ -157,6 +186,8 @@ void TIM3_IRQHandler()
         GPIO_WriteBit(GPIOC, GPIO_Pin_11, Bit_RESET);
     }
 
+    ETHERNET_SendFdkFrame();
+
     TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
 }
 
@@ -185,9 +216,11 @@ void EXTI0_IRQHandler(void)
     EXTI_ClearITPendingBit(EXTI_Line0);
     printf("INP recieved. Commands left in buffer: %d\r\n", CommFIFO_Count());
 
+}
 
-//
-    printf("CRC error frames: %d\r\n", ETH->MMCRFCECR);
-    printf("Alignment error frames: %d\r\n", ETH->MMCRFAECR);
-    printf("Good frames: %d\r\n", ETH->MMCRGUFCR);
+void EXTI15_10_IRQHandler(void)
+{
+    EXTI_ClearITPendingBit(EXTI_Line14);
+    printf("Strobe counter\r\n");
+
 }

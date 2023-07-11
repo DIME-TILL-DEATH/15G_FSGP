@@ -7,5 +7,6 @@
 #define NUM_PROTOCOL_BYTES 112
 
 void parseFrame(const uint8_t* inData, uint32_t inLenData, uint8_t* outData, uint32_t* outLenData);
+void getFdkPayload(uint8_t* data_ptr, uint16_t* dataLen_ptr);
 
 #endif /* USER_PROTOCOL_FRAME_PARSER_H_ */

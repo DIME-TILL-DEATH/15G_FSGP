@@ -7,11 +7,18 @@
 #define UDP_REC_BUF_LEN                1472
 uint8_t MACAddr[6];                                              //MAC address
 uint8_t IPAddr[4] = {192, 168, 104, 10};                         //IP address
+
+uint8_t mstMACAddr[6] = {0};
+uint8_t mstIPAddr[4] = {0};
+
 uint8_t GWIPAddr[4] = {192, 168, 104, 255};                        //Gateway IP address
 uint8_t IPMask[4] = {255, 255, 255, 0};                        //subnet mask
-uint8_t DESIP[4] = {0, 0, 0, 0};                         //destination IP address
-uint16_t desport = 40003;                                         //destination port
-uint16_t srcport = 40003;                                         //source port
+
+uint16_t dstPort = 40003;                                         //destination ports
+uint16_t fdkDstPort = 40004;
+uint16_t srcPort = 40003;                                         //source port
+
+UDPFrame fdkFrameHeader;
 
 // service functions:
 /* Compute checksum for count bytes starting at addr, using one's complement of one's complement sum*/
@@ -180,6 +187,10 @@ void ETHERNET_ParseUdpFrame(const RecievedFrameData* frame)
     {
         answerFrameHeader = parsedFrameHeader;
 
+
+        memcpy(mstMACAddr, parsedFrameHeader.structData.srcMAC, 6);
+        memcpy(mstIPAddr, parsedFrameHeader.structData.srcIpAddress, 4);
+
 //        printf("dst IP: ");
 //        for (uint8_t i = 0; i < 4; i++)
 //        {
@@ -206,7 +217,7 @@ void ETHERNET_ParseUdpFrame(const RecievedFrameData* frame)
             memcpy(answerFrameHeader.structData.srcIpAddress, IPAddr, 4);
             memcpy(answerFrameHeader.structData.dstIpAddress, parsedFrameHeader.structData.srcIpAddress, 4);
 
-            answerFrameHeader.structData.srcPort = __builtin_bswap16(srcport);
+            answerFrameHeader.structData.srcPort = __builtin_bswap16(srcPort);
             answerFrameHeader.structData.dstPort = parsedFrameHeader.structData.srcPort;
 
             answerFrameHeader.structData.udpLength = __builtin_bswap16(outDataLen + UDP_ONLY_HEADER_SIZE);
@@ -225,5 +236,54 @@ void ETHERNET_ParseUdpFrame(const RecievedFrameData* frame)
 
             ETH_TxPktChainMode(totalAnswerLen, answer);
         }
+    }
+}
+
+void ETHERNET_SendFdkFrame()
+{
+    uint8_t dummyMACAddr[6] = {0};
+
+    if(!compareArrays(mstMACAddr, dummyMACAddr, 6))
+    {
+        uint8_t rawFdkFrame[512] = {0};
+        uint16_t payloadLen;
+
+        getFdkPayload(&(rawFdkFrame[UDP_PAYLOAD_POSITION]), &payloadLen);
+
+        uint16_t totalAnswerLen = UDP_FULL_HEADER_SIZE+payloadLen;
+
+        memcpy(fdkFrameHeader.structData.srcMAC, MACAddr, 6);
+        memcpy(fdkFrameHeader.structData.dstMAC, mstMACAddr, 6);
+
+        fdkFrameHeader.structData.frameType = __builtin_bswap16(FRAME_TYPE_IPv4);
+        fdkFrameHeader.structData.ipVerHdrLen = 0x45;
+        fdkFrameHeader.structData.diffServicesField = 0x00;
+
+        fdkFrameHeader.structData.ipTotalLength = __builtin_bswap16(totalAnswerLen - ETHERNETII_HEADER_SIZE);
+
+        fdkFrameHeader.structData.identification = 0x0000;
+
+        fdkFrameHeader.structData.fragmentFlagsAndOffset = 0x40; // not fragmented
+
+        fdkFrameHeader.structData.ttl = 0xFF;
+        fdkFrameHeader.structData.protocol = IPv4_PROTOCOL_UDP;
+
+        memcpy(fdkFrameHeader.structData.srcIpAddress, IPAddr, 4);
+        memcpy(fdkFrameHeader.structData.dstIpAddress, mstIPAddr, 4);
+
+        fdkFrameHeader.structData.srcPort = __builtin_bswap16(srcPort);
+        fdkFrameHeader.structData.dstPort = __builtin_bswap16(fdkDstPort);
+
+        fdkFrameHeader.structData.udpLength = __builtin_bswap16(payloadLen + UDP_ONLY_HEADER_SIZE);
+
+        fdkFrameHeader.structData.checksum = 0;
+        uint16_t checkSumIp = computeIpChecksum(&(fdkFrameHeader.rawData[ETHERNETII_HEADER_SIZE]), IP_HEADER_SIZE);
+        fdkFrameHeader.structData.checksum = __builtin_bswap16(checkSumIp);
+
+        fdkFrameHeader.structData.udpCheckSum = 0;
+
+        memcpy(rawFdkFrame, fdkFrameHeader.rawData, UDP_FULL_HEADER_SIZE);
+
+        ETH_TxPktChainMode(totalAnswerLen, rawFdkFrame);
     }
 }
