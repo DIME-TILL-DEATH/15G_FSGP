@@ -9,7 +9,7 @@ void parseFrame(const uint8_t* inData, uint32_t inDataLen, uint8_t* outData, uin
 {
     *outDataLen = 0;
 
-    if(inData[COMMAND_FRAME_POS] == COMMAND_FRAME)
+    if(inData[FRAME_TYPE_POS] == COMMAND_FRAME)
     {
         Command_Frame *comand_ptr = (Command_Frame *)&(inData[COMMAND_DATA_POS]);
         Command_Frame recieved_command = *comand_ptr;
@@ -25,6 +25,8 @@ void parseFrame(const uint8_t* inData, uint32_t inDataLen, uint8_t* outData, uin
 
             *outDataLen = inDataLen + 16;
         }
+
+        outData[FRAME_TYPE_POS] = ACK_FRAME;
 
 //        printf("Timestamp_lw: %X Index: %d TVRS: %d Command buffer: %d\r\n", recieved_command.timestamp_lw,
 //                                                                             recieved_command.index,
@@ -47,5 +49,8 @@ void getFdkPayload(uint8_t* data_ptr, uint16_t* dataLen_ptr)
         for(int i=0; i<132; i++)
             data_ptr[i] = i;
     }
+
+    data_ptr[FRAME_TYPE_POS] = ACK_FRAME;
+
     if(dataLen_ptr) *dataLen_ptr = 32;
 }

@@ -40,6 +40,7 @@ encoding//User/net_config.h=GBK
 encoding//User/protocol/command_fifo.c=GBK
 encoding//User/protocol/command_fifo.h=GBK
 encoding//User/protocol/command_frame.h=GBK
+encoding//User/protocol/frame_defines.h=GBK
 encoding//User/protocol/frame_parser.c=GBK
 encoding//User/protocol/frame_parser.h=GBK
 encoding//User/veeprom.c=GBK

@@ -186,7 +186,7 @@ void TIM3_IRQHandler()
         GPIO_WriteBit(GPIOC, GPIO_Pin_11, Bit_RESET);
     }
 
-    ETHERNET_SendFdkFrame();
+    //ETHERNET_SendFdkFrame();
 
     TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
 }
@@ -221,6 +221,6 @@ void EXTI0_IRQHandler(void)
 void EXTI15_10_IRQHandler(void)
 {
     EXTI_ClearITPendingBit(EXTI_Line14);
-    printf("Strobe counter\r\n");
+   // printf("Strobe counter\r\n");
 
 }

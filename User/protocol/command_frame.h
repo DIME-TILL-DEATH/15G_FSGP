@@ -1,17 +1,9 @@
-/*
- * command_frame.h
- *
- *  Created on: May 24, 2023
- *      Author: Kostyuvhik Dmitriy
- */
-
 #ifndef USER_PROTOCOL_COMMAND_FRAME_H_
 #define USER_PROTOCOL_COMMAND_FRAME_H_
 
 #include <stdint.h>
+#include "frame_defines.h"
 
-#define COMMAND_FRAME_POS 3
-#define COMMAND_FRAME 0x3
 
 #define COMMAND_DATA_POS 64
 

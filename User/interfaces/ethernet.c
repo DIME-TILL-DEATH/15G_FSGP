@@ -6,7 +6,8 @@
 
 #define UDP_REC_BUF_LEN                1472
 uint8_t MACAddr[6];                                              //MAC address
-uint8_t IPAddr[4] = {192, 168, 104, 10};                         //IP address
+//uint8_t IPAddr[4] = {192, 168, 104, 10};                         //IP address
+uint8_t IPAddr[4] = {192, 168, 0, 10};                         //IP address
 
 uint8_t mstMACAddr[6] = {0};
 uint8_t mstIPAddr[4] = {0};
@@ -153,11 +154,19 @@ void ETHERNET_ParseIcmpFrame(const RecievedFrameData* frame)
         {
             answerFrame = parsedFrame;
 
+            uint16_t answerLength = ICMP_FULL_HEADER_SIZE;
+
             memcpy(answerFrame.structData.srcMAC, MACAddr, 6);
             memcpy(answerFrame.structData.dstMAC, parsedFrame.structData.srcMAC, 6);
 
             memcpy(answerFrame.structData.srcIpAddress, IPAddr, 4);
             memcpy(answerFrame.structData.dstIpAddress, parsedFrame.structData.srcIpAddress, 4);
+
+            answerFrame.structData.ipTotalLength = __builtin_bswap16(answerLength - ETHERNETII_HEADER_SIZE);
+
+            answerFrame.structData.checksum = 0;
+            uint16_t checkSumIp = computeIpChecksum(&(answerFrame.rawData[ETHERNETII_HEADER_SIZE]), IP_HEADER_SIZE);
+            answerFrame.structData.checksum = __builtin_bswap16(checkSumIp);
 
             answerFrame.structData.icmpType = ICMP_TYPE_ECHO_ANSWER;
 
@@ -166,7 +175,7 @@ void ETHERNET_ParseIcmpFrame(const RecievedFrameData* frame)
                                                     ICMP_FULL_HEADER_SIZE - ETHERNETII_HEADER_SIZE - IP_HEADER_SIZE);
             answerFrame.structData.icmpChecksum = __builtin_bswap16(checksum);
 
-            ETH_TxPktChainMode(ICMP_FULL_HEADER_SIZE, answerFrame.rawData);
+            ETH_TxPktChainMode(answerLength, answerFrame.rawData);
         }
     }
 }
