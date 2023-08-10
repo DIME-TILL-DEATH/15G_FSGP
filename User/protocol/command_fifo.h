@@ -8,18 +8,18 @@
 #ifndef USER_PROTOCOL_COMMAND_FIFO_H_
 #define USER_PROTOCOL_COMMAND_FIFO_H_
 
+#include <fsgp_command_frame.h>
 #include <stdbool.h>
-#include "command_frame.h"
 
 #define COMMAND_FIFO_SIZE 32
 
 void CommFIFO_Init();
 
-bool CommFIFO_PutData(Command_Frame new_data);
+bool CommFIFO_PutData(FSGP_Command_Frame new_data);
 // get and permanently delete next data
-Command_Frame CommFIFO_GetData();
+FSGP_Command_Frame CommFIFO_GetData();
 // view next data
-Command_Frame CommFIFO_PeekData();
+FSGP_Command_Frame CommFIFO_PeekData();
 
 unsigned char CommFIFO_Count();
 

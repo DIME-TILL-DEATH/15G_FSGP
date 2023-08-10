@@ -186,7 +186,7 @@ void TIM3_IRQHandler()
         GPIO_WriteBit(GPIOC, GPIO_Pin_11, Bit_RESET);
     }
 
-    //ETHERNET_SendFdkFrame();
+    ETHERNET_SendFdkFrame();
 
     TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
 }
@@ -195,7 +195,7 @@ uint8_t bufData[4] = {1, 2, 3, 4};
 void EXTI0_IRQHandler(void)
 {
     GPIO_WriteBit(GPIOC, GPIO_Pin_2, Bit_SET);
-    Command_Frame actualComm = CommFIFO_GetData();
+    FSGP_Command_Frame actualComm = CommFIFO_GetData();
 
 //    UART_WriteData(UART_NUM1, &actualComm.index, 4);
 //    UART_WriteData(UART_NUM2, &actualComm.TVRS, 4);
@@ -214,7 +214,7 @@ void EXTI0_IRQHandler(void)
     GPIO_WriteBit(GPIOC, GPIO_Pin_2, Bit_RESET);
 
     EXTI_ClearITPendingBit(EXTI_Line0);
-    printf("INP recieved. Commands left in buffer: %d\r\n", CommFIFO_Count());
+    printf("INP recieved. TVRS: %d Commands left: %d\r\n", actualComm.TVRS, CommFIFO_Count());
 
 }
 

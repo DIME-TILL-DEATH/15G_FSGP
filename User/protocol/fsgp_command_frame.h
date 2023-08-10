@@ -1,16 +1,11 @@
-#ifndef USER_PROTOCOL_COMMAND_FRAME_H_
-#define USER_PROTOCOL_COMMAND_FRAME_H_
+#ifndef USER_PROTOCOL_FSGP_COMMAND_FRAME_H_
+#define USER_PROTOCOL_FSGP_COMMAND_FRAME_H_
 
 #include <stdint.h>
 #include "frame_defines.h"
 
-
-#define COMMAND_DATA_POS 64
-
-#define OSL_PS_POS 91
-
-#define BUFFER_SIZE_LW_POS 115
-#define QUEUE_SIZE_LW_POS 123
+#define FSGP_BUFFER_SIZE_LW_POS FRAME_HEADER_SIZE + 24*4 + 3 //115
+#define FSGP_QUEUE_SIZE_LW_POS FRAME_HEADER_SIZE + 26*4 + 3 //123
 
 typedef struct
 {
@@ -80,6 +75,6 @@ typedef struct
 
    //word 23, [32:0]
    uint32_t timestamp_lw;
-}Command_Frame;
+}FSGP_Command_Frame;
 
-#endif /* USER_PROTOCOL_COMMAND_FRAME_H_ */
+#endif /* USER_PROTOCOL_FSGP_COMMAND_FRAME_H_ */

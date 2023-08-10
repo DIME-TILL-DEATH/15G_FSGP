@@ -3,16 +3,16 @@
 #include "frame_parser.h"
 #include "command_fifo.h"
 
-void mConvertEndians(Command_Frame* comm);
+void mConvertEndians(FSGP_Command_Frame* comm);
 
 void parseFrame(const uint8_t* inData, uint32_t inDataLen, uint8_t* outData, uint32_t* outDataLen)
 {
     *outDataLen = 0;
 
-    if(inData[FRAME_TYPE_POS] == COMMAND_FRAME)
+    if(inData[FRAME_TYPE_POS] == FSGP_COMMAND_FRAME)
     {
-        Command_Frame *comand_ptr = (Command_Frame *)&(inData[COMMAND_DATA_POS]);
-        Command_Frame recieved_command = *comand_ptr;
+        FSGP_Command_Frame *comand_ptr = (FSGP_Command_Frame *)&(inData[COMMAND_DATA_POS]);
+        FSGP_Command_Frame recieved_command = *comand_ptr;
 
         mConvertEndians(&recieved_command);
 
@@ -20,13 +20,13 @@ void parseFrame(const uint8_t* inData, uint32_t inDataLen, uint8_t* outData, uin
         {
             memcpy(outData, inData, inDataLen);
 
-            outData[BUFFER_SIZE_LW_POS] = COMMAND_FIFO_SIZE;
-            outData[QUEUE_SIZE_LW_POS] = CommFIFO_Count();
+            outData[FSGP_BUFFER_SIZE_LW_POS] = COMMAND_FIFO_SIZE;
+            outData[FSGP_QUEUE_SIZE_LW_POS] = CommFIFO_Count();
 
             *outDataLen = inDataLen + 16;
         }
 
-        outData[FRAME_TYPE_POS] = ACK_FRAME;
+        outData[FRAME_TYPE_POS] = FSGP_ACK_FRAME;
 
 //        printf("Timestamp_lw: %X Index: %d TVRS: %d Command buffer: %d\r\n", recieved_command.timestamp_lw,
 //                                                                             recieved_command.index,
@@ -35,7 +35,7 @@ void parseFrame(const uint8_t* inData, uint32_t inDataLen, uint8_t* outData, uin
     }
 }
 
-void mConvertEndians(Command_Frame* comm)
+void mConvertEndians(FSGP_Command_Frame* comm)
 {
     comm->TVRS = __builtin_bswap32(comm->TVRS);
     comm->index = __builtin_bswap32(comm->index);
@@ -50,7 +50,7 @@ void getFdkPayload(uint8_t* data_ptr, uint16_t* dataLen_ptr)
             data_ptr[i] = i;
     }
 
-    data_ptr[FRAME_TYPE_POS] = ACK_FRAME;
+    data_ptr[FRAME_TYPE_POS] = FSGP_FDK_FRAME;
 
     if(dataLen_ptr) *dataLen_ptr = 32;
 }

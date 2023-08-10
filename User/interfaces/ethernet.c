@@ -16,7 +16,7 @@ uint8_t GWIPAddr[4] = {192, 168, 104, 255};                        //Gateway IP 
 uint8_t IPMask[4] = {255, 255, 255, 0};                        //subnet mask
 
 uint16_t dstPort = 40003;                                         //destination ports
-uint16_t fdkDstPort = 40004;
+uint16_t fdkDstPort = 40002;
 uint16_t srcPort = 40003;                                         //source port
 
 UDPFrame fdkFrameHeader;
