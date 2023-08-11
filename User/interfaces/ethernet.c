@@ -246,6 +246,9 @@ void ETHERNET_ParseUdpFrame(const RecievedFrameData* frame)
             memcpy(answer, answerFrameHeader.rawData, UDP_FULL_HEADER_SIZE);
 
             ETH_TxPktChainMode(totalAnswerLen, answer);
+
+            if(framesCounter == 255) framesCounter = 0;
+            else framesCounter++;
         }
     }
 }
@@ -296,5 +299,8 @@ void ETHERNET_SendFdkFrame()
         memcpy(rawFdkFrame, fdkFrameHeader.rawData, UDP_FULL_HEADER_SIZE);
 
         ETH_TxPktChainMode(totalAnswerLen, rawFdkFrame);
+
+        if(framesCounter == 255) framesCounter = 0;
+        else framesCounter++;
     }
 }

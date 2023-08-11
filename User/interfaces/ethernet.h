@@ -139,6 +139,8 @@ typedef union
     uint8_t rawData[ICMP_FULL_HEADER_SIZE];
 }ICMPFrame;
 
+extern uint8_t framesCounter;
+
 void ETHERNET_ParseUdpFrame(const RecievedFrameData* frame);
 void ETHERNET_ParseIcmpFrame(const RecievedFrameData* frame);
 void ETHERNET_ParseArpFrame(const RecievedFrameData* frame);

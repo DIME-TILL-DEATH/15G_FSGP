@@ -19,6 +19,7 @@ void EXTI15_10_IRQHandler(void)  __attribute__((interrupt(/*"WCH-Interrupt-fast"
 void TIM3_IRQHandler(void)  __attribute__((interrupt(/*"WCH-Interrupt-fast"*/)));
 
 bool ledState=0;
+uint8_t framesCounter = 0;
 
 void PIN_Init()
 {
