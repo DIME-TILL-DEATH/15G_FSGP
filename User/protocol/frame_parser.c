@@ -9,7 +9,7 @@ void parseFrame(const uint8_t* inData, uint32_t inDataLen, uint8_t* outData, uin
 {
     *outDataLen = 0;
 
-    if(inData[FRAME_TYPE_POS] == FSGP_COMMAND_FRAME)
+    if(inData[HEADER_FRAME_TYPE_POS] == FSGP_COMMAND_FRAME)
     {
         FSGP_Command_Frame *comand_ptr = (FSGP_Command_Frame *)&(inData[COMMAND_DATA_POS]);
         FSGP_Command_Frame recieved_command = *comand_ptr;
@@ -26,7 +26,11 @@ void parseFrame(const uint8_t* inData, uint32_t inDataLen, uint8_t* outData, uin
             *outDataLen = inDataLen + 16;
         }
 
-        outData[FRAME_TYPE_POS] = FSGP_ACK_FRAME;
+        outData[HEAD_AUX_OFFSET128_LW] = FSGP_ACKFRAME_AUX_DATA_POS128;
+        outData[HEAD_AUX_SIZE128_LW] = FSGP_ACKFRAME_DATA_SIZE128;
+
+        outData[HEADER_FRAME_TYPE_POS] = FSGP_ACK_FRAME;
+        outData[BODY_FRAME_TYPE_POS] = FSGP_ACK_FRAME;
 
 //        printf("Timestamp_lw: %X Index: %d TVRS: %d Command buffer: %d\r\n", recieved_command.timestamp_lw,
 //                                                                             recieved_command.index,
@@ -50,7 +54,7 @@ void getFdkPayload(uint8_t* data_ptr, uint16_t* dataLen_ptr)
             data_ptr[i] = i;
     }
 
-    data_ptr[FRAME_TYPE_POS] = FSGP_FDK_FRAME;
+    data_ptr[HEADER_FRAME_TYPE_POS] = FSGP_FDK_FRAME;
 
     if(dataLen_ptr) *dataLen_ptr = 32;
 }

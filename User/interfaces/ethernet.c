@@ -7,7 +7,7 @@
 #define UDP_REC_BUF_LEN                1472
 uint8_t MACAddr[6];                                              //MAC address
 //uint8_t IPAddr[4] = {192, 168, 104, 10};                         //IP address
-uint8_t IPAddr[4] = {192, 168, 0, 10};                         //IP address
+uint8_t IPAddr[4] = {10, 0, 0, 121};                         //IP address
 
 uint8_t mstMACAddr[6] = {0};
 uint8_t mstIPAddr[4] = {0};
@@ -18,6 +18,7 @@ uint8_t IPMask[4] = {255, 255, 255, 0};                        //subnet mask
 uint16_t dstPort = 40003;                                         //destination ports
 uint16_t fdkDstPort = 40002;
 uint16_t srcPort = 40003;                                         //source port
+uint16_t ackPort = 40004;
 
 UDPFrame fdkFrameHeader;
 
@@ -227,7 +228,8 @@ void ETHERNET_ParseUdpFrame(const RecievedFrameData* frame)
             memcpy(answerFrameHeader.structData.dstIpAddress, parsedFrameHeader.structData.srcIpAddress, 4);
 
             answerFrameHeader.structData.srcPort = __builtin_bswap16(srcPort);
-            answerFrameHeader.structData.dstPort = parsedFrameHeader.structData.srcPort;
+//            answerFrameHeader.structData.dstPort = parsedFrameHeader.structData.srcPort;
+            answerFrameHeader.structData.dstPort = __builtin_bswap16(ackPort);
 
             answerFrameHeader.structData.udpLength = __builtin_bswap16(outDataLen + UDP_ONLY_HEADER_SIZE);
 
