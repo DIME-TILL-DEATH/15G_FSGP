@@ -6,22 +6,8 @@
 #define WORD32_BYTE_SIZE 4
 #define WORD128_WORD32_SIZE 4
 
-#define FRAME_HEADER_SIZE 4*WORD128_WORD32_SIZE   // four 32 bit words
-#define DATAGRAM_HEADER_SIZE 12*WORD128_WORD32_SIZE
-
-// Fields positions---------------------------------
-#define CTRL_OFFSET128_LW 4*WORD128_WORD32_SIZE + LOW_WORD_OFFSET
-#define CTRL_SIZE128_LW 5*WORD128_WORD32_SIZE + LOW_WORD_OFFSET
-
-#define SYNC_OFFSET128_LW 6*WORD128_WORD32_SIZE + LOW_WORD_OFFSET
-#define SYNC_SIZE128_LW 7*WORD128_WORD32_SIZE + LOW_WORD_OFFSET
-
-#define HEAD_AUX_OFFSET128_LW 8*WORD128_WORD32_SIZE + LOW_WORD_OFFSET
-#define HEAD_AUX_SIZE128_LW 9*WORD128_WORD32_SIZE + LOW_WORD_OFFSET
-
-#define SIGNAL_OFFSET128_LW 10*WORD128_WORD32_SIZE + LOW_WORD_OFFSET
-#define SIGNAL_SIZE128_LW 11*WORD128_WORD32_SIZE + LOW_WORD_OFFSET
-//--------------------------------------------------
+#define FRAME_HEADER_SIZE 4*WORD32_BYTE_SIZE   // four 32 bit words
+#define DATAGRAM_HEADER_SIZE 12*WORD32_BYTE_SIZE
 
 #define HEADER_FRAME_TYPE_POS 3
 #define BODY_FRAME_TYPE_POS 19
@@ -33,6 +19,64 @@
 #define UPPM_FDK_FRAME 15
 #define FSGP_FDK_FRAME 16
 
-#define COMMAND_DATA_POS FRAME_HEADER_SIZE+DATAGRAM_HEADER_SIZE //64
+#define COMMAND_DATA_POS FRAME_HEADER_SIZE+DATAGRAM_HEADER_SIZE
 
+//-------------------------------------------------
+#define FRAME_SIGNATURE 0xACAB
+
+typedef struct
+{
+    uint16_t signature;
+    uint8_t RTK;
+    uint8_t TK;
+
+    uint32_t RK;
+
+    uint8_t SCH;
+
+    uint8_t PF          :1;
+    uint8_t reserved1   :7;
+
+    uint16_t RF128;
+    uint32_t NF;
+}Frame_Header_Struct;
+
+typedef union
+{
+    Frame_Header_Struct structData;
+    uint8_t rawData[FRAME_HEADER_SIZE];
+}FrameHeader;
+
+//-------------------------------------------------
+typedef struct
+{
+    uint8_t LAYOUT;
+    uint8_t LAYOUT_SIZE128;
+    uint8_t RTK;
+    uint8_t TK;
+
+    uint32_t RK;
+
+    uint32_t reserved1;
+    uint32_t reserved2;
+
+    uint32_t CTRL_OFFSET128;
+    uint32_t CTRL_SIZE128;
+
+    uint32_t SYNC_OFFSET128;
+    uint32_t SYNC_SIZE128;
+
+    uint32_t HEAD_AUX_OFFSET128;
+    uint32_t HEAD_AUX_SIZE128;
+
+    uint32_t SIGNAL_OFFSET128;
+    uint32_t SIGNAL_SIZE128;
+}Datagram_Header_Struct;
+
+typedef union
+{
+    Datagram_Header_Struct structData;
+    uint8_t rawData[DATAGRAM_HEADER_SIZE];
+}Datagram_Header;
+//-------------------------------------------------
 #endif /* USER_PROTOCOL_FRAME_DEFINES_H_ */

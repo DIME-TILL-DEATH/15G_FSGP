@@ -43,6 +43,7 @@ encoding//User/protocol/frame_defines.h=GBK
 encoding//User/protocol/frame_parser.c=GBK
 encoding//User/protocol/frame_parser.h=GBK
 encoding//User/protocol/fsgp_command_frame.h=GBK
+encoding//User/protocol/fsgp_fdk_frame.h=GBK
 encoding//User/veeprom.c=GBK
 encoding//User/veeprom.h=GBK
 encoding/README.md=GBK

@@ -2,6 +2,7 @@
 
 #include "ethernet.h"
 
+#include "veeprom.h"
 #include "frame_parser.h"
 
 #define UDP_REC_BUF_LEN                1472
@@ -200,14 +201,6 @@ void ETHERNET_ParseUdpFrame(const RecievedFrameData* frame)
 
         memcpy(mstMACAddr, parsedFrameHeader.structData.srcMAC, 6);
         memcpy(mstIPAddr, parsedFrameHeader.structData.srcIpAddress, 4);
-
-//        printf("dst IP: ");
-//        for (uint8_t i = 0; i < 4; i++)
-//        {
-//            printf("%d ", dstIp[i]);
-//        }
-//        printf("\r\n");
-//            printf("port = %d len = %d\r\n", dstPort, udpLength);
 
         uint8_t answer[512];
         uint32_t outDataLen;
