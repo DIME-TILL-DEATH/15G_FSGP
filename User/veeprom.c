@@ -5,12 +5,12 @@ void VEEPROM_Init()
 
 }
 
-SavedData VEEPROM_GetSavedData()
+SaveData VEEPROM_GetSavedData()
 {
 
 }
 
-void VEEPROM_SaveData(const SavedData* dataStruct)
+void VEEPROM_SaveData(const SaveData* dataStruct)
 {
 
 }

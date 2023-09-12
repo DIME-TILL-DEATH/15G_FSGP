@@ -11,6 +11,8 @@
 #include "uart.h"
 #include "ethernet.h"
 
+#include "lfmFormer.h"
+
 #include "command_fifo.h"
 #include "frame_parser.h"
 
@@ -133,6 +135,8 @@ int main(void)
     UART_Init();
     TIM3_Init();
     INT_Init();
+
+    LFM_Init();
 
     NVIC_SetPriority(TIM3_IRQn,   (3<<5) | (0x01<<4));/* Group priority 3, lower overall priority */
     NVIC_SetPriority(ETH_IRQn, (2<<5) | (0x01<<4));
