@@ -199,28 +199,18 @@ void TIM3_IRQHandler()
 uint8_t bufData[4] = {1, 2, 3, 4};
 void EXTI0_IRQHandler(void)
 {
-    GPIO_WriteBit(GPIOC, GPIO_Pin_2, Bit_SET);
-    FSGP_Command_Frame actualComm = CommFIFO_GetData();
+    GPIOC->BSHR = GPIO_Pin_2;
 
-//    UART_WriteData(UART_NUM1, &actualComm.index, 4);
-//    UART_WriteData(UART_NUM2, &actualComm.TVRS, 4);
+    FSGP_Command_Frame* actualComm = CommFIFO_GetData();
 
-    bufData[0]++;
-    bufData[1]++;
-    bufData[2]++;
-    bufData[3]++;
+//    printf("KP in pack:%d\r\n", actualComm->KP);
 
-    UART_WriteData(UART_NUM1, bufData, 4);
-    UART_WriteData(UART_NUM2, bufData, 4);
+    LFM_SetPack(actualComm->KP);
 
-//    UART_WriteByte(UART_NUM1, actualComm.TVRS&0x000F);
-//    UART_WriteByte(UART_NUM2, actualComm.TVRS&0x000F);
-
-    GPIO_WriteBit(GPIOC, GPIO_Pin_2, Bit_RESET);
+    GPIOC->BCR = GPIO_Pin_2;
 
     EXTI_ClearITPendingBit(EXTI_Line0);
-    printf("INP recieved. TVRS: %d Commands left: %d\r\n", actualComm.TVRS, CommFIFO_Count());
-
+//    printf("INP recieved. TVRS: %d Commands left: %d\r\n", actualComm.TVRS, CommFIFO_Count());
 }
 
 void EXTI15_10_IRQHandler(void)

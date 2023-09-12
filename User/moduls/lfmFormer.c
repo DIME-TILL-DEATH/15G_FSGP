@@ -3,8 +3,11 @@
 #include "lfm_fifo.h"
 #include "pack_data.h"
 
-#define STAGE1_LENGTH 0
-#define STAGE2_LENGTH 2
+#define STAGE1_LENGTH 0 * 24
+#define STAGE2_LENGTH 2 * 24
+
+GPIO_TypeDef* DATA_PORT;
+ControlPin_t PIN_CS, PIN_ADR, PIN_WR, PIN_RD;
 
 LfmPack_t packData[PACK_COUNT+1] =
 {
@@ -107,7 +110,7 @@ LfmPack_t packData[PACK_COUNT+1] =
         }
 };
 
-DdsRegisterData_t ddsPackData[PACK_COUNT];
+DdsRegisterData_t ddsPackData[PACK_COUNT+1];
 
 void TIM6_IRQHandler(void)  __attribute__((interrupt("WCH-Interrupt-fast")));
 
@@ -133,9 +136,9 @@ DdsRegisterData_t calcPackData(LfmPack_t pack)
     outputData.startF[1] = (freqStart & 0xFFFF0000) >> 16;
     outputData.startF[2] = (freqStart & 0xFFFF00000000) >> 32;
 
-    outputData.deltaF[0] = (dF & 0xFFFF);
-    outputData.deltaF[1] = (dF & 0xFFFF0000) >> 16;
-    outputData.deltaF[2] = (dF & 0xFFFF00000000) >> 32;
+    outputData.deltaF[0] = ((uint64_t)dF & 0xFFFF);
+    outputData.deltaF[1] = ((uint64_t)dF & 0xFFFF0000) >> 16;
+    outputData.deltaF[2] = ((uint64_t)dF & 0xFFFF00000000) >> 32;
 
     uint64_t tph3 = DDS1508_CalcTWord(pack.impLength);
     outputData.tph3[0] = (tph3 & 0xFFFF);
@@ -153,7 +156,7 @@ DdsRegisterData_t calcPackData(LfmPack_t pack)
 
 void LFM_Init()
 {
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOE, ENABLE);
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOD | RCC_APB2Periph_GPIOE, ENABLE);
 
     GPIO_InitTypeDef  GPIO_InitStructure = {0};
 
@@ -162,39 +165,172 @@ void LFM_Init()
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
     GPIO_Init(GPIOE, &GPIO_InitStructure);
+    DATA_PORT = GPIOE;
+
+    // CS, ADR, WR, RD
+    PIN_CS.port = PIN_ADR.port = PIN_WR.port = PIN_RD.port = GPIOD;
+    PIN_CS.pin = GPIO_Pin_12;
+    PIN_ADR.pin = GPIO_Pin_13;
+    PIN_WR.pin = GPIO_Pin_14;
+    PIN_RD.pin = GPIO_Pin_15;
+
+    GPIO_InitStructure.GPIO_Pin = PIN_CS.pin | PIN_ADR.pin | PIN_WR.pin | PIN_RD.pin;
+    GPIO_Init(GPIOD, &GPIO_InitStructure);
+
+    GPIO_SetBits(PIN_CS.port, PIN_CS.pin);
+    GPIO_SetBits(PIN_ADR.port, PIN_ADR.pin);
+    GPIO_SetBits(PIN_WR.port, PIN_WR.pin);
+    GPIO_SetBits(PIN_RD.port, PIN_RD.pin);
 
     DDS1508_SetDiscretisationFreq(FDISCRET);
 
+    LfmFIFO_Init();
+
     // fill built-in packs data on startup
-    for(uint16_t i=0; i<PACK_COUNT; i++)
+    for(uint16_t i=0; i<PACK_COUNT+1; i++)
     {
-        ddsPackData[i] = calcPackData(packData[PACK_COUNT]);
+        ddsPackData[i] = calcPackData(packData[i]);
     }
 
-    //  Timer for seting data intervals
+    //  Timer for setting data intervals
     TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure = { 0 };
 
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM6, ENABLE);
 
-    TIM_TimeBaseStructure.TIM_Period = SystemCoreClock;
-    TIM_TimeBaseStructure.TIM_Prescaler = 36;
+    TIM_TimeBaseStructure.TIM_Period = 4;
+    TIM_TimeBaseStructure.TIM_Prescaler = 0;
     TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
     TIM_TimeBaseInit(TIM6, &TIM_TimeBaseStructure);
     TIM_ITConfig(TIM6, TIM_IT_Update, ENABLE);
 
     TIM_Cmd(TIM6, ENABLE);
     TIM_ClearITPendingBit(TIM6, TIM_IT_Update);
-    NVIC_EnableIRQ(TIM6_IRQn);
+//    NVIC_EnableIRQ(TIM6_IRQn);
 }
 
-void LFM_writeReg(uint16_t regAddress, uint16_t regData)
+void LFM_SetPackBuffered(uint8_t packNumber)
 {
+    DDS1508_Command_t comm;
+
+    comm.address = DDS1508_ADDR_CH1_F_H;
+    comm.value = ddsPackData[packNumber].startF[2];
+    LfmFIFO_PutData(comm);
+
+    comm.address = DDS1508_ADDR_CH1_F_M;
+    comm.value = ddsPackData[packNumber].startF[1];
+    LfmFIFO_PutData(comm);
+
+    comm.address = DDS1508_ADDR_CH1_F_L;
+    comm.value = ddsPackData[packNumber].startF[0];
+    LfmFIFO_PutData(comm);
+
+    comm.address = DDS1508_ADDR_CH1_dF_H;
+    comm.value = ddsPackData[packNumber].deltaF[2];
+    LfmFIFO_PutData(comm);
+
+    comm.address = DDS1508_ADDR_CH1_dF_M;
+    comm.value = ddsPackData[packNumber].deltaF[1];
+    LfmFIFO_PutData(comm);
+
+    comm.address = DDS1508_ADDR_CH1_dF_L;
+    comm.value = ddsPackData[packNumber].deltaF[0];
+    LfmFIFO_PutData(comm);
+
+    comm.address = DDS1508_ADDR_CH1_TPH3_L;
+    comm.value = ddsPackData[packNumber].tph3[0];
+        LfmFIFO_PutData(comm);
+
+    comm.address = DDS1508_ADDR_CH1_TPH4_L;
+    comm.value = ddsPackData[packNumber].tph4[0];
+    LfmFIFO_PutData(comm);
+
+    NVIC_EnableIRQ(TIM6_IRQn);
 
 }
 
 DDS1508_Command_t actualComm;
+LfmSendState_t sendingState = IDLE;
 void TIM6_IRQHandler(void)
 {
     TIM_ClearITPendingBit(TIM6, TIM_IT_Update);
+
+    switch(sendingState)
+    {
+    case IDLE:
+        if(LfmFIFO_Count() > 0)
+        {
+            actualComm = LfmFIFO_GetData();
+            GPIO_ResetBits(PIN_CS.port, PIN_CS.pin);
+            sendingState = ADR_SET;
+        }
+        else
+        {
+            GPIO_SetBits(PIN_CS.port, PIN_CS.pin);
+            NVIC_DisableIRQ(TIM6_IRQn);
+        }
+        break;
+
+    case ADR_SET:
+        GPIO_Write(DATA_PORT, actualComm.address);
+        GPIO_ResetBits(PIN_ADR.port, PIN_ADR.pin);
+        GPIO_ResetBits(PIN_WR.port, PIN_WR.pin);
+        sendingState = ADR_WR;
+        break;
+
+    case ADR_WR:
+        GPIO_SetBits(PIN_WR.port, PIN_WR.pin);
+        GPIO_SetBits(PIN_ADR.port, PIN_ADR.pin);
+        sendingState = DATA_SET;
+        break;
+
+    case DATA_SET:
+        GPIO_Write(DATA_PORT, actualComm.value);
+        GPIO_ResetBits(PIN_WR.port, PIN_WR.pin);
+        sendingState = DATA_WR;
+        break;
+
+    case DATA_WR:
+        GPIO_SetBits(PIN_WR.port, PIN_WR.pin);
+        sendingState = IDLE;
+        break;
+    }
 }
+
+// Fast routine
+static inline void LFM_WriteReg(uint16_t address, uint16_t value)
+{
+//    PIN_CS.port->BCR = PIN_CS.pin;
+
+    PIN_ADR.port->BCR = PIN_ADR.pin;
+    PIN_WR.port->BCR = PIN_WR.pin;
+    DATA_PORT->OUTDR =  address;
+    PIN_WR.port->BSHR = PIN_WR.pin;
+    PIN_WR.port->BSHR = PIN_ADR.pin;
+
+    PIN_WR.port->BCR = PIN_WR.pin;
+    DATA_PORT->OUTDR = value;
+    PIN_WR.port->BSHR = PIN_WR.pin;
+
+//    PIN_CS.port->BSHR = PIN_CS.pin;
+}
+
+void LFM_SetPack(uint8_t packNumber)
+{
+    PIN_CS.port->BCR = PIN_CS.pin;
+    LFM_WriteReg(DDS1508_ADDR_CH1_F_H, ddsPackData[packNumber].startF[2]);
+    LFM_WriteReg(DDS1508_ADDR_CH1_F_M, ddsPackData[packNumber].startF[1]);
+    LFM_WriteReg(DDS1508_ADDR_CH1_F_L, ddsPackData[packNumber].startF[0]);
+
+    LFM_WriteReg(DDS1508_ADDR_CH1_dF_H, ddsPackData[packNumber].deltaF[2]);
+    LFM_WriteReg(DDS1508_ADDR_CH1_dF_M, ddsPackData[packNumber].deltaF[1]);
+    LFM_WriteReg(DDS1508_ADDR_CH1_dF_L, ddsPackData[packNumber].deltaF[0]);
+    PIN_CS.port->BSHR = PIN_CS.pin;
+
+    PIN_CS.port->BCR = PIN_CS.pin;
+    LFM_WriteReg(DDS1508_ADDR_CH1_TPH3_L, ddsPackData[packNumber].tph3[0]);
+    LFM_WriteReg(DDS1508_ADDR_CH1_TPH4_L, ddsPackData[packNumber].tph4[0]);
+    PIN_CS.port->BSHR = PIN_CS.pin;
+}
+
+
 

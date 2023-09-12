@@ -112,6 +112,8 @@ void ETHERNET_Init()
 
     ETHDRV_Init(IPAddr, GWIPAddr, IPMask, MACAddr);
 
+    printf("IP addr: %d.%d.%d.%d\r\n", IPAddr[0], IPAddr[1], IPAddr[2], IPAddr[3]);
+
     ETH->MACA0HR = (uint32_t)MACAddr[5]<<8 | (uint32_t)MACAddr[4];
     ETH->MACA0LR = (uint32_t)MACAddr[3]<<24 |(uint32_t)MACAddr[2]<<16 |(uint32_t)MACAddr[1]<<8 |(uint32_t)MACAddr[0];
 }

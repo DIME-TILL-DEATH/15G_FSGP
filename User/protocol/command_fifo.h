@@ -9,8 +9,8 @@
 void CommFIFO_Init();
 
 bool CommFIFO_PutData(FSGP_Command_Frame new_data);
-// get and permanently delete next data
-FSGP_Command_Frame CommFIFO_GetData();
+// Fast get and permanently delete next data
+FSGP_Command_Frame* CommFIFO_GetData();
 // view next data
 FSGP_Command_Frame CommFIFO_PeekData();
 

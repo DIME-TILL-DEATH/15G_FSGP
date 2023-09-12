@@ -35,7 +35,7 @@ typedef struct
    uint8_t reserved2  :4;
 
    // word 12, [7:0]
-   uint8_t KP         :8;     // §¬§±
+   uint8_t KP         :8;     // §¬§à§Õ §á§Ñ§é§Ü§Ú
 
    // word 13, [31:24]
    uint8_t reserved3  :8;

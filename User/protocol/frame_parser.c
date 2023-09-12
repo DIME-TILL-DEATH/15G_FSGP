@@ -19,6 +19,8 @@ void parseFrame(const uint8_t* inData, uint32_t inDataLen, uint8_t* outData, uin
 
         mConvertEndians(&recieved_command);
 
+//        printf("Recieved KP:%d\r\n", recieved_command.KP);
+
         if(CommFIFO_PutData(recieved_command))
         {
             memcpy(outData, inData, inDataLen);

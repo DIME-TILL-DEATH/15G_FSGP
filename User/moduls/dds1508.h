@@ -20,13 +20,13 @@
 #define DDS1508_ADDR_CH1_TPH4_M 0x101D
 #define DDS1508_ADDR_CH1_TPH4_H 0x101E
 
-#define DDS1508_ADDR_CH1_F_L 0x1020
-#define DDS1508_ADDR_CH1_F_M 0x1021
-#define DDS1508_ADDR_CH1_F_H 0x1022
+#define DDS1508_ADDR_CH1_F_L 0x1024
+#define DDS1508_ADDR_CH1_F_M 0x1025
+#define DDS1508_ADDR_CH1_F_H 0x1026
 
-#define DDS1508_ADDR_CH1_dF_L 0x1040
-#define DDS1508_ADDR_CH1_dF_M 0x1041
-#define DDS1508_ADDR_CH1_dF_H 0x1042
+#define DDS1508_ADDR_CH1_dF_L 0x1044
+#define DDS1508_ADDR_CH1_dF_M 0x1045
+#define DDS1508_ADDR_CH1_dF_H 0x1046
 
 typedef struct
 {
@@ -36,8 +36,8 @@ typedef struct
 
 void DDS1508_SetDiscretisationFreq(double_t sfreqDiscret);
 
-uint64_t DDS1508_CalcFreqWord(double_t freqTarget);
-uint64_t DDS1508_CalcDFWord(double_t freqStart, double_t freqStop, double_t lfmLength);
+int64_t DDS1508_CalcFreqWord(double_t freqTarget);
+int64_t DDS1508_CalcDFWord(double_t freqStart, double_t freqStop, double_t lfmLength);
 
 uint64_t DDS1508_CalcTWord(double_t lentgh);
 
