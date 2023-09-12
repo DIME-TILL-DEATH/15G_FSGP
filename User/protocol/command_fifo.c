@@ -1,14 +1,7 @@
-/*
- * command_fifo.c
- *
- *  Created on: May 24, 2023
- *      Author: Dmitriy Kostyuchik
- */
-
 #include "command_fifo.h"
 
 uint8_t buf_wr_index, buf_rd_index, buf_counter;
-FSGP_Command_Frame command_buf[32];
+FSGP_Command_Frame command_buf[COMMAND_FIFO_SIZE];
 
 void CommFIFO_Init()
 {

@@ -1,5 +1,6 @@
 #include "lfmFormer.h"
 
+#include "lfm_fifo.h"
 #include "pack_data.h"
 
 #define STAGE1_LENGTH 0
