@@ -17,7 +17,7 @@
 #include "frame_parser.h"
 
 void EXTI0_IRQHandler(void)  __attribute__((interrupt("WCH-Interrupt-fast")));
-void EXTI15_10_IRQHandler(void)  __attribute__((interrupt(/*"WCH-Interrupt-fast"*/)));
+//void EXTI15_10_IRQHandler(void)  __attribute__((interrupt(/*"WCH-Interrupt-fast"*/)));
 void TIM3_IRQHandler(void)  __attribute__((interrupt(/*"WCH-Interrupt-fast"*/)));
 
 bool ledState=0;
@@ -125,6 +125,8 @@ int main(void)
 	Delay_Init();
 	USART_Printf_Init(115200);
 
+	LFM_Init();
+
 	printf("UDP client. Recieving control frames for FSGP\r\n");
 	printf("SystemClk: %d\r\n",SystemCoreClock);
 	printf( "ChipID: %08x\r\n", DBGMCU_GetCHIPID() );
@@ -136,7 +138,7 @@ int main(void)
     TIM3_Init();
     INT_Init();
 
-    LFM_Init();
+//    LFM_Init();
 
     NVIC_SetPriority(TIM3_IRQn,   (3<<5) | (0x01<<4));/* Group priority 3, lower overall priority */
     NVIC_SetPriority(ETH_IRQn, (2<<5) | (0x01<<4));
@@ -210,12 +212,12 @@ void EXTI0_IRQHandler(void)
     GPIOC->BCR = GPIO_Pin_2;
 
     EXTI_ClearITPendingBit(EXTI_Line0);
-//    printf("INP recieved. TVRS: %d Commands left: %d\r\n", actualComm.TVRS, CommFIFO_Count());
+//    printf("INP recieved. packNum: %d Commands left: %d\r\n", actualComm->KP, CommFIFO_Count());
 }
 
-void EXTI15_10_IRQHandler(void)
-{
-    EXTI_ClearITPendingBit(EXTI_Line14);
-   // printf("Strobe counter\r\n");
-
-}
+//void EXTI15_10_IRQHandler(void)
+//{
+//    EXTI_ClearITPendingBit(EXTI_Line14);
+//   // printf("Strobe counter\r\n");
+//
+//}

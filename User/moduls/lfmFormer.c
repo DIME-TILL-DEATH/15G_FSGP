@@ -9,14 +9,16 @@
 GPIO_TypeDef* DATA_PORT;
 ControlPin_t PIN_CS, PIN_ADR, PIN_WR, PIN_RD;
 
+static inline void LFM_WriteReg(uint16_t address, uint16_t value);
+
 LfmPack_t packData[PACK_COUNT+1] =
 {
         // pack 0 - zero pack
         {
             .sign = 0,
-            .impLength = 10,
-            .period = 100,
-            .impNum = 2
+            .impLength = 120,
+            .period = 600,
+            .impNum = 4
         },
         {
              .sign = PACK1_SIGN,
@@ -206,6 +208,11 @@ void LFM_Init()
     TIM_Cmd(TIM6, ENABLE);
     TIM_ClearITPendingBit(TIM6, TIM_IT_Update);
 //    NVIC_EnableIRQ(TIM6_IRQn);
+
+    // pre impulse delay
+//    PIN_CS.port->BCR = PIN_CS.pin;
+//    LFM_WriteReg(DDS1508_ADDR_CH1_TPH2_L, STAGE2_LENGTH);
+//    PIN_CS.port->BSHR = PIN_CS.pin;
 }
 
 void LFM_SetPackBuffered(uint8_t packNumber)
@@ -331,6 +338,7 @@ void LFM_SetPack(uint8_t packNumber)
     LFM_WriteReg(DDS1508_ADDR_CH1_TPH4_L, ddsPackData[packNumber].tph4[0]);
     PIN_CS.port->BSHR = PIN_CS.pin;
 }
+//------------------------------------------------------------------------------
 
 
 
