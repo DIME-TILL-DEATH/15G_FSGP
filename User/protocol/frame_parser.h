@@ -2,6 +2,8 @@
 #define USER_PROTOCOL_FRAME_PARSER_H_
 
 #include <stdint.h>
+#include <stdbool.h>
+
 #include <debug.h>
 
 #define NUM_PROTOCOL_BYTES 112

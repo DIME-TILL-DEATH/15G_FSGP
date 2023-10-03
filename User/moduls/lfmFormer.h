@@ -2,6 +2,7 @@
 #define USER_MODULS_LFMFORMER_H_
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #include "debug.h"
 #include "dds1508.h"
@@ -43,5 +44,6 @@ typedef struct
 void LFM_Init();
 void LFM_SetPack(uint8_t packNumber);
 void LFM_SetPackBuffered(uint8_t packNumber);
+void LFM_RecalcImitData(bool enableImit, double_t delay, double_t dopplerFreq);
 
 #endif /* USER_MODULS_LFMFORMER_H_ */

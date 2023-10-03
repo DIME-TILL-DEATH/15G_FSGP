@@ -97,8 +97,8 @@ void INT_Init()
 
     EXTI_Init(&EXTI_InitStructure);
 
-    NVIC_EnableIRQ(EXTI0_IRQn);
-    NVIC_EnableIRQ(EXTI15_10_IRQn);
+//    NVIC_EnableIRQ(EXTI0_IRQn);
+//    NVIC_EnableIRQ(EXTI15_10_IRQn);
 }
 
 void TIM3_Init(void)
@@ -116,7 +116,7 @@ void TIM3_Init(void)
 
     TIM_Cmd(TIM3, ENABLE);
     TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
-    NVIC_EnableIRQ(TIM3_IRQn);
+//    NVIC_EnableIRQ(TIM3_IRQn);
 }
 
 int main(void)
@@ -146,6 +146,11 @@ int main(void)
     NVIC_SetPriority(EXTI0_IRQn, (0<<5) | (0x01<<4));/* Group priority 0, overall priority is higher */
 
     printf("NVIC priorities EXTI: %x, ETH: %x, TIM3: %x\r\n", NVIC->IPRIOR[EXTI0_IRQn], NVIC->IPRIOR[ETH_IRQn], NVIC->IPRIOR[TIM3_IRQn]);
+
+    // Enable IRQ's only when all initiallization finished
+    NVIC_EnableIRQ(EXTI0_IRQn);
+    NVIC_EnableIRQ(EXTI15_10_IRQn);
+    NVIC_EnableIRQ(TIM3_IRQn);
 
 	while(1)
     {

@@ -112,11 +112,17 @@ LfmPack_t packData[PACK_COUNT+1] =
         }
 };
 
-DdsRegisterData_t ddsPackData[PACK_COUNT+1];
+DdsRegisterData_t ddsPackData[PACK_COUNT+1]; // Base pack(Zond impulse)
+DdsRegisterData_t ddsImitData[PACK_COUNT+1]; // Reflected from target data(imitation);
+bool onImitSignal = 1;
 
 void TIM6_IRQHandler(void)  __attribute__((interrupt("WCH-Interrupt-fast")));
 
-DdsRegisterData_t calcPackData(LfmPack_t pack)
+/********************************************************
+ * delay - in discrets 24MHz
+ * doppler - in MHz
+ *******************************************************/
+DdsRegisterData_t calcPackData(LfmPack_t pack, double_t delay, double_t dopplerFreq)
 {
     DdsRegisterData_t outputData = {0};
 
@@ -125,12 +131,12 @@ DdsRegisterData_t calcPackData(LfmPack_t pack)
     uint64_t dF;
     if(pack.sign)
     {
-        freqStart = DDS1508_CalcFreqWord(FSTOP);
+        freqStart = DDS1508_CalcFreqWord(FSTOP+dopplerFreq);
         dF = DDS1508_CalcDFWord(FSTOP, FSTART, pack.impLength);
     }
     else
     {
-        freqStart = DDS1508_CalcFreqWord(FSTART);
+        freqStart = DDS1508_CalcFreqWord(FSTART+dopplerFreq);
         dF = DDS1508_CalcDFWord(FSTART, FSTOP, pack.impLength);
     }
 
@@ -142,12 +148,24 @@ DdsRegisterData_t calcPackData(LfmPack_t pack)
     outputData.deltaF[1] = ((uint64_t)dF & 0xFFFF0000) >> 16;
     outputData.deltaF[2] = ((uint64_t)dF & 0xFFFF00000000) >> 32;
 
+    double_t stage1_length = STAGE1_LENGTH + delay + pack.impLength;
+    uint64_t tph1 = DDS1508_CalcTWord(stage1_length);
+    outputData.tph1[0] = (tph1 & 0xFFFF);
+    outputData.tph1[1] = (tph1 & 0xFFFF0000) >> 16;
+    outputData.tph1[2] = (tph1 & 0xFFFF00000000) >> 32;
+
+    double_t stage2_length = STAGE2_LENGTH;
+    uint64_t tph2 = DDS1508_CalcTWord(stage2_length);
+    outputData.tph2[0] = (tph2 & 0xFFFF);
+    outputData.tph2[1] = (tph2 & 0xFFFF0000) >> 16;
+    outputData.tph2[2] = (tph2 & 0xFFFF00000000) >> 32;
+
     uint64_t tph3 = DDS1508_CalcTWord(pack.impLength);
     outputData.tph3[0] = (tph3 & 0xFFFF);
     outputData.tph3[1] = (tph3 & 0xFFFF0000) >> 16;
     outputData.tph3[2] = (tph3 & 0xFFFF00000000) >> 32;
 
-    double_t lengthStage4 = pack.period - pack.impLength - STAGE1_LENGTH - STAGE2_LENGTH;
+    double_t lengthStage4 = pack.period - pack.impLength - stage2_length;
     uint64_t tph4 = DDS1508_CalcTWord(lengthStage4);
     outputData.tph4[0] = (tph4 & 0xFFFF);
     outputData.tph4[1] = (tph4 & 0xFFFF0000) >> 16;
@@ -191,7 +209,8 @@ void LFM_Init()
     // fill built-in packs data on startup
     for(uint16_t i=0; i<PACK_COUNT+1; i++)
     {
-        ddsPackData[i] = calcPackData(packData[i]);
+        ddsPackData[i] = calcPackData(packData[i], 0, 0);
+        ddsImitData[i] = calcPackData(packData[i], 200, 0.005);
     }
 
     //  Timer for setting data intervals
@@ -213,6 +232,16 @@ void LFM_Init()
 //    PIN_CS.port->BCR = PIN_CS.pin;
 //    LFM_WriteReg(DDS1508_ADDR_CH1_TPH2_L, STAGE2_LENGTH);
 //    PIN_CS.port->BSHR = PIN_CS.pin;
+}
+
+void LFM_RecalcImitData(bool enableImit, double_t delay, double_t dopplerFreq)
+{
+    onImitSignal = enableImit;
+
+    for(uint16_t i=0; i<PACK_COUNT+1; i++)
+    {
+        ddsImitData[i] = calcPackData(packData[i], delay, dopplerFreq);
+    }
 }
 
 void LFM_SetPackBuffered(uint8_t packNumber)
@@ -337,6 +366,24 @@ void LFM_SetPack(uint8_t packNumber)
     LFM_WriteReg(DDS1508_ADDR_CH1_TPH3_L, ddsPackData[packNumber].tph3[0]);
     LFM_WriteReg(DDS1508_ADDR_CH1_TPH4_L, ddsPackData[packNumber].tph4[0]);
     PIN_CS.port->BSHR = PIN_CS.pin;
+
+    // Imit data
+    if(onImitSignal)
+    {
+        PIN_CS.port->BCR = PIN_CS.pin;
+        LFM_WriteReg(DDS1508_ADDR_CH2_F_H, ddsImitData[packNumber].startF[2]);
+        LFM_WriteReg(DDS1508_ADDR_CH2_F_M, ddsImitData[packNumber].startF[1]);
+        LFM_WriteReg(DDS1508_ADDR_CH2_F_L, ddsImitData[packNumber].startF[0]);
+
+        LFM_WriteReg(DDS1508_ADDR_CH2_dF_H, ddsImitData[packNumber].deltaF[2]);
+        LFM_WriteReg(DDS1508_ADDR_CH2_dF_M, ddsImitData[packNumber].deltaF[1]);
+        LFM_WriteReg(DDS1508_ADDR_CH2_dF_L, ddsImitData[packNumber].deltaF[0]);
+
+        LFM_WriteReg(DDS1508_ADDR_CH2_TPH1_L, ddsImitData[packNumber].tph1[0]);
+        LFM_WriteReg(DDS1508_ADDR_CH2_TPH3_L, ddsImitData[packNumber].tph3[0]);
+        LFM_WriteReg(DDS1508_ADDR_CH2_TPH4_L, ddsImitData[packNumber].tph4[0]);
+        PIN_CS.port->BSHR = PIN_CS.pin;
+    }
 }
 //------------------------------------------------------------------------------
 

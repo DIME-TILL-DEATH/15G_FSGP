@@ -6,74 +6,80 @@
 #include "fsgp_command_frame.h"
 #include "fsgp_fdk_frame.h"
 
+#include "lfmFormer.h"
+
 void mConvertEndians(FSGP_Command_Frame* comm);
 
 void parseFrame(const uint8_t* inData, uint32_t inDataLen, uint8_t* outData, uint32_t* outDataLen)
 {
     *outDataLen = 0;
 
-    if(inData[HEADER_FRAME_TYPE_POS] == FSGP_COMMAND_FRAME)
+//    if(inData[HEADER_FRAME_TYPE_POS] == FSGP_COMMAND_FRAME)
+//    {
+    switch(inData[HEADER_FRAME_TYPE_POS])
     {
-        FSGP_Command_Frame *comand_ptr = (FSGP_Command_Frame *)&(inData[COMMAND_DATA_POS]);
-        FSGP_Command_Frame recieved_command = *comand_ptr;
-
-        mConvertEndians(&recieved_command);
-
-//        printf("Recieved KP:%d\r\n", recieved_command.KP);
-
-        if(CommFIFO_PutData(recieved_command))
+        case FSGP_COMMAND_FRAME:
         {
-            memcpy(outData, inData, inDataLen);
+            FSGP_Command_Frame *comand_ptr = (FSGP_Command_Frame *)&(inData[COMMAND_DATA_POS]);
+            FSGP_Command_Frame recieved_command = *comand_ptr;
 
-            outData[FSGP_BUFFER_SIZE_LW_POS] = COMMAND_FIFO_SIZE;
-            outData[FSGP_QUEUE_SIZE_LW_POS] = CommFIFO_Count();
+            mConvertEndians(&recieved_command);
 
-            *outDataLen = inDataLen + 16;
+            if(CommFIFO_PutData(recieved_command))
+            {
+                memcpy(outData, inData, inDataLen);
+
+                outData[FSGP_BUFFER_SIZE_LW_POS] = COMMAND_FIFO_SIZE;
+                outData[FSGP_QUEUE_SIZE_LW_POS] = CommFIFO_Count();
+
+                *outDataLen = inDataLen + 16;
+            }
+
+            FrameHeader frameHeader;
+            memset(frameHeader.rawData, 0, FRAME_HEADER_SIZE);
+
+            frameHeader.structData.signature = __builtin_bswap16(FRAME_SIGNATURE);
+            frameHeader.structData.RTK = 0;
+            frameHeader.structData.TK = FSGP_ACK_FRAME;
+            frameHeader.structData.RK = __builtin_bswap32(*outDataLen);
+            frameHeader.structData.RF128 = __builtin_bswap16(*outDataLen/16);
+            frameHeader.structData.PF = 1;
+            frameHeader.structData.SCH = framesCounter;
+            frameHeader.structData.NF = 0;
+
+            Datagram_Header datagramHeader;
+            memset(datagramHeader.rawData, 0, DATAGRAM_HEADER_SIZE);
+
+            datagramHeader.structData.LAYOUT = 4;
+            datagramHeader.structData.LAYOUT_SIZE128 = 3;
+            datagramHeader.structData.RTK = 0;
+            datagramHeader.structData.TK = FSGP_ACK_FRAME;
+            datagramHeader.structData.RK = __builtin_bswap32(*outDataLen - FRAME_HEADER_SIZE);
+
+            datagramHeader.structData.CTRL_OFFSET128 = __builtin_bswap32(FSGP_ACKFRAME_CTRL_OFFSET128);
+            datagramHeader.structData.CTRL_SIZE128 = __builtin_bswap32(FSGP_ACKFRAME_CTRL_SIZE128);
+            datagramHeader.structData.SYNC_OFFSET128 = __builtin_bswap32(FSGP_ACKFRAME_SYNC_OFFSET128);
+            datagramHeader.structData.SYNC_SIZE128 = __builtin_bswap32(FSGP_ACKFRAME_SYNC_SIZE128);;
+            datagramHeader.structData.HEAD_AUX_OFFSET128 = __builtin_bswap32(FSGP_ACKFRAME_AUX_DATA_OFFSET128);
+            datagramHeader.structData.HEAD_AUX_SIZE128 = __builtin_bswap32(FSGP_ACKFRAME_AUX_DATA_SIZE128);
+            datagramHeader.structData.SIGNAL_OFFSET128 = __builtin_bswap32(FSGP_ACKFRAME_SIGNAL_OFFSET128);
+            datagramHeader.structData.SIGNAL_SIZE128 =  __builtin_bswap32(FSGP_ACKFRAME_SIGNAL_SIZE128);
+
+            memcpy(&outData[0], frameHeader.rawData, FRAME_HEADER_SIZE);
+            memcpy(&outData[FRAME_HEADER_SIZE], datagramHeader.rawData, DATAGRAM_HEADER_SIZE);
+
+            break;
         }
-//
-//        outData[HEAD_AUX_OFFSET128_LW] = FSGP_ACKFRAME_AUX_DATA_POS128;
-//        outData[HEAD_AUX_SIZE128_LW] = FSGP_ACKFRAME_AUX_DATA_SIZE128;
-//
-//        outData[HEADER_FRAME_TYPE_POS] = FSGP_ACK_FRAME;
-//        outData[BODY_FRAME_TYPE_POS] = FSGP_ACK_FRAME;
 
-        FrameHeader frameHeader;
-        memset(frameHeader.rawData, 0, FRAME_HEADER_SIZE);
+        case FSGP_SIGNAL_DESCR_FRAME:
+        {
+            printf("recieved signal description frame\r\n");
 
-        frameHeader.structData.signature = __builtin_bswap16(FRAME_SIGNATURE);
-        frameHeader.structData.RTK = 0;
-        frameHeader.structData.TK = FSGP_ACK_FRAME;
-        frameHeader.structData.RK = __builtin_bswap32(*outDataLen);
-        frameHeader.structData.RF128 = __builtin_bswap16(*outDataLen/16);
-        frameHeader.structData.PF = 1;
-        frameHeader.structData.SCH = framesCounter;
-        frameHeader.structData.NF = 0;
+            //LFM_RecalcImitData(true, );
+            break;
+        }
 
-        Datagram_Header datagramHeader;
-        memset(datagramHeader.rawData, 0, DATAGRAM_HEADER_SIZE);
-
-        datagramHeader.structData.LAYOUT = 4;
-        datagramHeader.structData.LAYOUT_SIZE128 = 3;
-        datagramHeader.structData.RTK = 0;
-        datagramHeader.structData.TK = FSGP_ACK_FRAME;
-        datagramHeader.structData.RK = __builtin_bswap32(*outDataLen - FRAME_HEADER_SIZE);
-
-        datagramHeader.structData.CTRL_OFFSET128 = __builtin_bswap32(FSGP_ACKFRAME_CTRL_OFFSET128);
-        datagramHeader.structData.CTRL_SIZE128 = __builtin_bswap32(FSGP_ACKFRAME_CTRL_SIZE128);
-        datagramHeader.structData.SYNC_OFFSET128 = __builtin_bswap32(FSGP_ACKFRAME_SYNC_OFFSET128);
-        datagramHeader.structData.SYNC_SIZE128 = __builtin_bswap32(FSGP_ACKFRAME_SYNC_SIZE128);;
-        datagramHeader.structData.HEAD_AUX_OFFSET128 = __builtin_bswap32(FSGP_ACKFRAME_AUX_DATA_OFFSET128);
-        datagramHeader.structData.HEAD_AUX_SIZE128 = __builtin_bswap32(FSGP_ACKFRAME_AUX_DATA_SIZE128);
-        datagramHeader.structData.SIGNAL_OFFSET128 = __builtin_bswap32(FSGP_ACKFRAME_SIGNAL_OFFSET128);
-        datagramHeader.structData.SIGNAL_SIZE128 =  __builtin_bswap32(FSGP_ACKFRAME_SIGNAL_SIZE128);
-
-        memcpy(&outData[0], frameHeader.rawData, FRAME_HEADER_SIZE);
-        memcpy(&outData[FRAME_HEADER_SIZE], datagramHeader.rawData, DATAGRAM_HEADER_SIZE);
-
-//        printf("Timestamp_lw: %X Index: %d TVRS: %d Command buffer: %d\r\n", recieved_command.timestamp_lw,
-//                                                                             recieved_command.index,
-//                                                                             recieved_command.TVRS,
-//                                                                             CommFIFO_Count());
+        default: printf("recieved frame has unknown frame type\r\n");
     }
 }
 
