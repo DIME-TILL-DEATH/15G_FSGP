@@ -47,7 +47,7 @@ void parseFrame(const uint8_t* inData, uint32_t inDataLen, uint8_t* outData, uin
             frameHeader.structData.SCH = framesCounter;
             frameHeader.structData.NF = 0;
 
-            Datagram_Header datagramHeader;
+            DatagramHeader datagramHeader;
             memset(datagramHeader.rawData, 0, DATAGRAM_HEADER_SIZE);
 
             datagramHeader.structData.LAYOUT = 4;
@@ -107,7 +107,7 @@ void getFdkPayload(uint8_t* data_ptr, uint16_t* dataLen_ptr)
     frameHeader.structData.SCH = framesCounter;
     frameHeader.structData.NF = 0;
 
-    Datagram_Header datagramHeader;
+    DatagramHeader datagramHeader;
     memset(datagramHeader.rawData, 0, DATAGRAM_HEADER_SIZE);
 
     datagramHeader.structData.LAYOUT = 4;

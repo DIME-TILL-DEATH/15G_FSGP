@@ -208,7 +208,7 @@ void ETHERNET_ParseUdpFrame(const RecievedFrameData* frame)
         uint32_t outDataLen;
 
 
-        parseFrame(&(frame->frameData[UDP_PAYLOAD_POSITION]), NUM_PROTOCOL_BYTES, &(answer[UDP_PAYLOAD_POSITION]), &outDataLen);
+        parseFrame(&(frame->frameData[UDP_PAYLOAD_POSITION]), __builtin_bswap16(parsedFrameHeader.structData.udpLength) - UDP_ONLY_HEADER_SIZE, &(answer[UDP_PAYLOAD_POSITION]), &outDataLen);
 
         if(outDataLen > 0)
         {

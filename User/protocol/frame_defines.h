@@ -79,6 +79,6 @@ typedef union
 {
     Datagram_Header_Struct structData;
     uint8_t rawData[DATAGRAM_HEADER_SIZE];
-}Datagram_Header;
+}DatagramHeader;
 //-------------------------------------------------
 #endif /* USER_PROTOCOL_FRAME_DEFINES_H_ */

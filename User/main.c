@@ -210,19 +210,9 @@ void EXTI0_IRQHandler(void)
 
     FSGP_Command_Frame* actualComm = CommFIFO_GetData();
 
-//    printf("KP in pack:%d\r\n", actualComm->KP);
-
     LFM_SetPack(actualComm->KP);
 
     GPIOC->BCR = GPIO_Pin_2;
 
     EXTI_ClearITPendingBit(EXTI_Line0);
-//    printf("INP recieved. packNum: %d Commands left: %d\r\n", actualComm->KP, CommFIFO_Count());
 }
-
-//void EXTI15_10_IRQHandler(void)
-//{
-//    EXTI_ClearITPendingBit(EXTI_Line14);
-//   // printf("Strobe counter\r\n");
-//
-//}
