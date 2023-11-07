@@ -52,3 +52,10 @@ uint8_t CommFIFO_Count()
 {
     return buf_counter;
 }
+
+void CommFIFO_Clear()
+{
+    buf_wr_index = 0;
+    buf_rd_index = 0;
+    buf_counter = 0;
+}

@@ -7,6 +7,8 @@
 #include "debug.h"
 #include "dds1508.h"
 
+#include "pack_data.h"
+
 typedef struct
 {
     uint16_t impNum;
@@ -45,5 +47,7 @@ void LFM_Init();
 void LFM_SetPack(uint8_t packNumber);
 void LFM_SetPackBuffered(uint8_t packNumber);
 void LFM_RecalcImitData(bool enableImit, double_t delay, double_t dopplerFreq);
+
+void LFM_SetStage2();
 
 #endif /* USER_MODULS_LFMFORMER_H_ */

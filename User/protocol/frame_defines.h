@@ -21,6 +21,9 @@
 #define UPPM_FDK_FRAME 15
 #define FSGP_FDK_FRAME 16
 
+#define FSGP_SIGNAL_PARAMS_FRAME 161
+#define FSGP_ACK_SIGNAL_PARAMS_FRAME 162
+
 #define COMMAND_DATA_POS FRAME_HEADER_SIZE+DATAGRAM_HEADER_SIZE
 
 //-------------------------------------------------

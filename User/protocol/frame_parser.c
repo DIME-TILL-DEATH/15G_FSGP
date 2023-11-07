@@ -5,6 +5,7 @@
 
 #include "fsgp_command_frame.h"
 #include "fsgp_fdk_frame.h"
+#include "fsgp_signal_params_frame.h"
 
 #include "lfmFormer.h"
 
@@ -24,6 +25,8 @@ void parseFrame(const uint8_t* inData, uint32_t inDataLen, uint8_t* outData, uin
             FSGP_Command_Frame recieved_command = *comand_ptr;
 
             mConvertEndians(&recieved_command);
+
+            if(recieved_command.SBR_OCH) CommFIFO_Clear();
 
             if(CommFIFO_PutData(recieved_command))
             {
@@ -71,11 +74,25 @@ void parseFrame(const uint8_t* inData, uint32_t inDataLen, uint8_t* outData, uin
             break;
         }
 
-        case FSGP_SIGNAL_DESCR_FRAME:
+        case FSGP_SIGNAL_PARAMS_FRAME:
         {
-            printf("recieved signal description frame\r\n");
 
-            //LFM_RecalcImitData(true, );
+            FSGP_Signal_Params_Frame *paramsFrame_ptr = (FSGP_Signal_Params_Frame *)&(inData[COMMAND_DATA_POS]);
+
+            int16_t speedMS = __builtin_bswap16(paramsFrame_ptr->speed);
+            uint16_t delay = __builtin_bswap16(paramsFrame_ptr->delay);
+
+            printf("recieved signal description frame, speed: %d, delay: %d\r\n", speedMS, delay);
+
+            float_t fDoppler = 2 * speedMS * FSTART / 300000000;
+
+            LFM_RecalcImitData(true, delay, fDoppler);
+
+            memcpy(outData, inData, inDataLen);
+            *outDataLen = inDataLen;
+
+            outData[HEADER_FRAME_TYPE_POS] = FSGP_ACK_SIGNAL_PARAMS_FRAME;
+            outData[FRAME_HEADER_SIZE + HEADER_FRAME_TYPE_POS] = FSGP_ACK_SIGNAL_PARAMS_FRAME;
             break;
         }
 

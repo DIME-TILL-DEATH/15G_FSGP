@@ -5,6 +5,10 @@
 #include "veeprom.h"
 #include "frame_parser.h"
 
+#include "fsgp_command_frame.h"
+#include "fsgp_fdk_frame.h"
+#include "fsgp_signal_params_frame.h"
+
 #define UDP_REC_BUF_LEN                1472
 uint8_t MACAddr[6];                                              //MAC address
 //uint8_t IPAddr[4] = {192, 168, 104, 10};                         //IP address
@@ -124,6 +128,8 @@ void ETHERNET_ParseArpFrame(const RecievedFrameData* frame)
 
     memcpy(parsedFrame.rawData, frame, ARP_FULL_HEADER_SIZE);
 
+//    printf("recieved ARP\r\n");
+
     if(compareArrays(parsedFrame.structData.targetIpAdr, IPAddr, 4))
     {
         if(parsedFrame.structData.opCode == __builtin_bswap16(ARP_OPCODE_REQUEST))
@@ -242,8 +248,21 @@ void ETHERNET_ParseUdpFrame(const RecievedFrameData* frame)
 
             ETH_TxPktChainMode(totalAnswerLen, answer);
 
+            //===========================================================
+            uint8_t macDst[] = {0x00, 0xc0, 0x88, 0x02, 0x75, 0x7d};
+            memcpy(answerFrameHeader.structData.dstMAC, macDst, 6);
+            uint8_t ipDst[] = {10, 0, 1, 102};
+            memcpy(answerFrameHeader.structData.dstIpAddress, ipDst, 4);
+
+            memcpy(answer, answerFrameHeader.rawData, UDP_FULL_HEADER_SIZE);
+            ETH_TxPktChainMode(totalAnswerLen, answer);
+
             if(framesCounter == 255) framesCounter = 0;
             else framesCounter++;
+        }
+        else
+        {
+//            printf("buf overflow\r\n");
         }
     }
 }

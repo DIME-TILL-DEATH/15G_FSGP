@@ -1,10 +1,9 @@
 #include "lfmFormer.h"
 
 #include "lfm_fifo.h"
-#include "pack_data.h"
 
 #define STAGE1_LENGTH 0 * 24
-#define STAGE2_LENGTH 2 * 24
+#define STAGE2_LENGTH 4 * 24
 
 GPIO_TypeDef* DATA_PORT;
 ControlPin_t PIN_CS, PIN_ADR, PIN_WR, PIN_RD;
@@ -348,6 +347,20 @@ static inline void LFM_WriteReg(uint16_t address, uint16_t value)
     DATA_PORT->OUTDR = value;
     PIN_WR.port->BSHR = PIN_WR.pin;
 
+//    PIN_CS.port->BSHR = PIN_CS.pin;
+}
+
+void LFM_SetStage2()
+{
+//    double_t stage2_length = STAGE2_LENGTH;
+//    uint64_t tph2 = DDS1508_CalcTWord(stage2_length);
+//
+//    PIN_WR.port->BCR = PIN_WR.pin;
+//    PIN_CS.port->BCR = PIN_CS.pin;
+//
+//    LFM_WriteReg(DDS1508_ADDR_CH1_TPH2_L, tph2 & 0xFFFF);
+//
+//    PIN_WR.port->BCR = PIN_WR.pin;
 //    PIN_CS.port->BSHR = PIN_CS.pin;
 }
 

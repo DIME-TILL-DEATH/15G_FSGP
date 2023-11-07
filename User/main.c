@@ -17,7 +17,6 @@
 #include "frame_parser.h"
 
 void EXTI0_IRQHandler(void)  __attribute__((interrupt("WCH-Interrupt-fast")));
-//void EXTI15_10_IRQHandler(void)  __attribute__((interrupt(/*"WCH-Interrupt-fast"*/)));
 void TIM3_IRQHandler(void)  __attribute__((interrupt(/*"WCH-Interrupt-fast"*/)));
 
 bool ledState=0;
@@ -97,7 +96,7 @@ void INT_Init()
 
     EXTI_Init(&EXTI_InitStructure);
 
-//    NVIC_EnableIRQ(EXTI0_IRQn);
+    NVIC_EnableIRQ(EXTI0_IRQn);
 //    NVIC_EnableIRQ(EXTI15_10_IRQn);
 }
 
@@ -149,8 +148,11 @@ int main(void)
 
     // Enable IRQ's only when all initiallization finished
     NVIC_EnableIRQ(EXTI0_IRQn);
-    NVIC_EnableIRQ(EXTI15_10_IRQn);
     NVIC_EnableIRQ(TIM3_IRQn);
+
+    //Delay_Ms(2000);
+
+    //LFM_SetStage2();
 
 	while(1)
     {
@@ -203,6 +205,7 @@ void TIM3_IRQHandler()
     TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
 }
 
+uint64_t prevTVRS=0;
 uint8_t bufData[4] = {1, 2, 3, 4};
 void EXTI0_IRQHandler(void)
 {
@@ -211,6 +214,10 @@ void EXTI0_IRQHandler(void)
     FSGP_Command_Frame* actualComm = CommFIFO_GetData();
 
     LFM_SetPack(actualComm->KP);
+
+//    if(actualComm->TVRS != (prevTVRS+1)) printf("actual: %d, prev: %d\r\n", actualComm->TVRS, prevTVRS);
+
+    prevTVRS = actualComm->TVRS;
 
     GPIOC->BCR = GPIO_Pin_2;
 

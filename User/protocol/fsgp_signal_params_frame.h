@@ -1,0 +1,28 @@
+#ifndef USER_PROTOCOL_FSGP_SIGNAL_PARAMS_FRAME_H_
+#define USER_PROTOCOL_FSGP_SIGNAL_PARAMS_FRAME_H_
+
+#include <stdint.h>
+#include "frame_defines.h"
+
+// Fields value
+#define FSGP_SIGNAL_PARAMS_CTRL_OFFSET128 3
+#define FSGP_SIGNAL_PARAMS_CTRL_SIZE128 1
+
+#define FSGP_SIGNAL_PARAMS_SYNC_OFFSET128 4
+#define FSGP_SIGNAL_PARAMS_SYNC_SIZE128 0
+
+#define FSGP_SIGNAL_PARAMS_AUX_DATA_OFFSET128 4
+#define FSGP_SIGNAL_PARAMS_AUX_DATA_SIZE128 0
+
+#define FSGP_SIGNAL_PARAMS_SIGNAL_OFFSET128 4
+#define FSGP_SIGNAL_PARAMS_SIGNAL_SIZE128 0
+
+typedef struct
+{
+
+   int16_t speed;       // speed in m/s
+   uint16_t delay;     // discrets 24 MHz
+
+}FSGP_Signal_Params_Frame;
+
+#endif /* USER_PROTOCOL_FSGP_SIGNAL_PARAMS_FRAME_H_ */
