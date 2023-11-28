@@ -4,6 +4,8 @@
 #include "math.h"
 #include "stdint.h"
 
+#include "debug.h"
+
 // Channel 1
 #define DDS1508_ADDR_CH1_TPH1_L 0x1010
 #define DDS1508_ADDR_CH1_TPH1_M 0x1011
@@ -53,6 +55,12 @@
 #define DDS1508_ADDR_CH2_dF_L 0x2044
 #define DDS1508_ADDR_CH2_dF_M 0x2045
 #define DDS1508_ADDR_CH2_dF_H 0x2046
+
+typedef struct
+{
+    GPIO_TypeDef* port;
+    uint16_t pin;
+}ControlPin_t;
 
 typedef struct
 {

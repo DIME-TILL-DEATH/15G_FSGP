@@ -28,12 +28,6 @@ typedef enum
 
 typedef struct
 {
-    GPIO_TypeDef* port;
-    uint16_t pin;
-}ControlPin_t;
-
-typedef struct
-{
     uint16_t tph1[3];
     uint16_t tph2[3];
     uint16_t tph3[3];

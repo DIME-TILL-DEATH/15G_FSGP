@@ -12,6 +12,8 @@
 #include "ethernet.h"
 
 #include "lfmFormer.h"
+#include "hetFormer.h"
+#include "spi_heterodine.h"
 
 #include "command_fifo.h"
 #include "frame_parser.h"
@@ -30,25 +32,6 @@ void PIN_Init()
 
     GPIO_InitTypeDef  GPIO_InitStructure = {0};
 
-    // UART pins
-    GPIO_PinRemapConfig(GPIO_Remap_USART2 | GPIO_FullRemap_USART3, ENABLE);
-
-    /* USART2 remap TX-->D.5   RX-->D.6 */
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_5;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
-    GPIO_Init(GPIOD, &GPIO_InitStructure);
-
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6;
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-    GPIO_Init(GPIOD, &GPIO_InitStructure);
-
-    /* USART3 remap TX_1-->D.8  RX_1-->D.9 */
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_8;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
-    GPIO_Init(GPIOD, &GPIO_InitStructure);
-
     // Free pins
     GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
@@ -63,7 +46,7 @@ void PIN_Init()
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
     GPIO_Init(GPIOA, &GPIO_InitStructure);
 
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2 | GPIO_Pin_3 | GPIO_Pin_10 | GPIO_Pin_11;
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2 | GPIO_Pin_3 | GPIO_Pin_11;
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
     GPIO_Init(GPIOC, &GPIO_InitStructure);
@@ -124,7 +107,17 @@ int main(void)
 	Delay_Init();
 	USART_Printf_Init(115200);
 
+	CommFIFO_Init();
+
 	LFM_Init();
+	HET_Init();
+
+//	RCC_ClocksTypeDef RCC_ClocksStatus={0};
+//    RCC_GetClocksFreq(&RCC_ClocksStatus);
+//    printf("SYSCLK_Frequency-%d\r\n", RCC_ClocksStatus.SYSCLK_Frequency);
+//    printf("HCLK_Frequency-%d\r\n", RCC_ClocksStatus.HCLK_Frequency);
+//    printf("PCLK1_Frequency-%d\r\n", RCC_ClocksStatus.PCLK1_Frequency);
+//    printf("PCLK2_Frequency-%d\r\n", RCC_ClocksStatus.PCLK2_Frequency);
 
 	printf("UDP client. Recieving control frames for FSGP\r\n");
 	printf("SystemClk: %d\r\n",SystemCoreClock);
@@ -133,14 +126,11 @@ int main(void)
 	PIN_Init();
 	ETHERNET_Init();
 
-    UART_Init();
     TIM3_Init();
     INT_Init();
 
-//    LFM_Init();
-
-    NVIC_SetPriority(TIM3_IRQn,   (3<<5) | (0x01<<4));/* Group priority 3, lower overall priority */
-    NVIC_SetPriority(ETH_IRQn, (2<<5) | (0x01<<4));
+    NVIC_SetPriority(TIM3_IRQn,   (4<<5) | (0x01<<4));/* Group priority 3, lower overall priority */
+    NVIC_SetPriority(ETH_IRQn, (3<<5) | (0x01<<4));
     NVIC_SetPriority(EXTI15_10_IRQn, (1<<5) | (0x01<<4));
     NVIC_SetPriority(EXTI0_IRQn, (0<<5) | (0x01<<4));/* Group priority 0, overall priority is higher */
 
@@ -156,6 +146,7 @@ int main(void)
 
 	while(1)
     {
+	    SPIHET_Task();
         ETHDRV_MainTask();
 
         if(recievedFrameData.frameLength>0)
@@ -189,7 +180,7 @@ int main(void)
 // IRQ handlers
 void TIM3_IRQHandler()
 {
-    GPIO_WriteBit(GPIOC, GPIO_Pin_10, (ledState == 0) ? (ledState = Bit_SET) : (ledState = Bit_RESET));
+    //GPIO_WriteBit(GPIOC, GPIO_Pin_10, (ledState == 0) ? (ledState = Bit_SET) : (ledState = Bit_RESET));
 
     if(CommFIFO_Count() == 0)
     {
@@ -213,9 +204,8 @@ void EXTI0_IRQHandler(void)
 
     FSGP_Command_Frame* actualComm = CommFIFO_GetData();
 
+    HET_SetHeterodine(actualComm->NKCH);
     LFM_SetPack(actualComm->KP);
-
-//    if(actualComm->TVRS != (prevTVRS+1)) printf("actual: %d, prev: %d\r\n", actualComm->TVRS, prevTVRS);
 
     prevTVRS = actualComm->TVRS;
 
