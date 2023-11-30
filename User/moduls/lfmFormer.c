@@ -112,7 +112,6 @@ LfmPack_t packData[PACK_COUNT+1] =
 };
 
 DdsRegisterData_t ddsPackData[2*(PACK_COUNT+1)] = {0}; // Base pack(Zond impulse)
-//DdsRegisterData_t ddsImitData[PACK_COUNT+1]; // Reflected from target data(imitation);
 bool onImitSignal = 1;
 
 void TIM6_IRQHandler(void)  __attribute__((interrupt("WCH-Interrupt-fast")));
@@ -212,26 +211,6 @@ void LFM_Init()
         ddsPackData[PACK_COUNT + 1 + i] = calcPackData(packData[i], 120, 0.2);
         //ddsImitData[i] = calcPackData(packData[i], 200, 0.005);
     }
-
-    //  Timer for setting data intervals
-    TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure = { 0 };
-
-    RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM6, ENABLE);
-
-    TIM_TimeBaseStructure.TIM_Period = 4;
-    TIM_TimeBaseStructure.TIM_Prescaler = 0;
-    TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-    TIM_TimeBaseInit(TIM6, &TIM_TimeBaseStructure);
-    TIM_ITConfig(TIM6, TIM_IT_Update, ENABLE);
-
-    TIM_Cmd(TIM6, ENABLE);
-    TIM_ClearITPendingBit(TIM6, TIM_IT_Update);
-//    NVIC_EnableIRQ(TIM6_IRQn);
-
-    // pre impulse delay
-//    PIN_CS.port->BCR = PIN_CS.pin;
-//    LFM_WriteReg(DDS1508_ADDR_CH1_TPH2_L, STAGE2_LENGTH);
-//    PIN_CS.port->BSHR = PIN_CS.pin;
 }
 
 void LFM_RecalcImitData(bool enableImit, double_t delay, double_t dopplerFreq)
@@ -379,33 +358,15 @@ void LFM_SetPack(uint8_t packNumber)
     LFM_WriteReg(DDS1508_ADDR_CH1_dF_M, ddsPackData[packNumber].deltaF[1]);
     LFM_WriteReg(DDS1508_ADDR_CH1_dF_L, ddsPackData[packNumber].deltaF[0]);
 
-    PIN_WR.port->BCR = PIN_WR.pin;
-    PIN_CS.port->BSHR = PIN_CS.pin;
+//    PIN_WR.port->BCR = PIN_WR.pin;
+//    PIN_CS.port->BSHR = PIN_CS.pin;
+//    PIN_CS.port->BCR = PIN_CS.pin;
 
-    PIN_CS.port->BCR = PIN_CS.pin;
     LFM_WriteReg(DDS1508_ADDR_CH1_TPH3_L, ddsPackData[packNumber].tph3[0]);
     LFM_WriteReg(DDS1508_ADDR_CH1_TPH4_L, ddsPackData[packNumber].tph4[0]);
 
     PIN_WR.port->BCR = PIN_WR.pin;
     PIN_CS.port->BSHR = PIN_CS.pin;
-
-//    // Imit data
-//    if(onImitSignal)
-//    {
-//        PIN_CS.port->BCR = PIN_CS.pin;
-//        LFM_WriteReg(DDS1508_ADDR_CH2_F_H, ddsImitData[packNumber].startF[2]);
-//        LFM_WriteReg(DDS1508_ADDR_CH2_F_M, ddsImitData[packNumber].startF[1]);
-//        LFM_WriteReg(DDS1508_ADDR_CH2_F_L, ddsImitData[packNumber].startF[0]);
-//
-//        LFM_WriteReg(DDS1508_ADDR_CH2_dF_H, ddsImitData[packNumber].deltaF[2]);
-//        LFM_WriteReg(DDS1508_ADDR_CH2_dF_M, ddsImitData[packNumber].deltaF[1]);
-//        LFM_WriteReg(DDS1508_ADDR_CH2_dF_L, ddsImitData[packNumber].deltaF[0]);
-//
-//        LFM_WriteReg(DDS1508_ADDR_CH2_TPH1_L, ddsImitData[packNumber].tph1[0]);
-//        LFM_WriteReg(DDS1508_ADDR_CH2_TPH3_L, ddsImitData[packNumber].tph3[0]);
-//        LFM_WriteReg(DDS1508_ADDR_CH2_TPH4_L, ddsImitData[packNumber].tph4[0]);
-//        PIN_CS.port->BSHR = PIN_CS.pin;
-//    }
 }
 //------------------------------------------------------------------------------
 

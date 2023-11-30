@@ -32,21 +32,18 @@ void PIN_Init()
 
     GPIO_InitTypeDef  GPIO_InitStructure = {0};
 
-    // Free pins
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9;
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-    GPIO_Init(GPIOD, &GPIO_InitStructure);
 
-    // Key - NP & STROBE
+    // NP
     GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
     GPIO_Init(GPIOA, &GPIO_InitStructure);
 
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_14;
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-    GPIO_Init(GPIOA, &GPIO_InitStructure);
+    // Strobe
+//    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_14;
+//    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+//    GPIO_Init(GPIOA, &GPIO_InitStructure);
 
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2 | GPIO_Pin_3 | GPIO_Pin_11;
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2;
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
     GPIO_Init(GPIOC, &GPIO_InitStructure);
@@ -71,11 +68,11 @@ void INT_Init()
 //    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 //    NVIC_Init(&NVIC_InitStructure);
 
-    GPIO_EXTILineConfig(GPIO_PortSourceGPIOA, GPIO_PinSource14); //PA14 - STROBE
-    EXTI_InitStructure.EXTI_Line = EXTI_Line14;
-    EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
-    EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising;
-    EXTI_InitStructure.EXTI_LineCmd = ENABLE;
+//    GPIO_EXTILineConfig(GPIO_PortSourceGPIOA, GPIO_PinSource14); //PA14 - STROBE
+//    EXTI_InitStructure.EXTI_Line = EXTI_Line14;
+//    EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
+//    EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising;
+//    EXTI_InitStructure.EXTI_LineCmd = ENABLE;
 
     EXTI_Init(&EXTI_InitStructure);
 
@@ -180,24 +177,11 @@ int main(void)
 // IRQ handlers
 void TIM3_IRQHandler()
 {
-    //GPIO_WriteBit(GPIOC, GPIO_Pin_10, (ledState == 0) ? (ledState = Bit_SET) : (ledState = Bit_RESET));
-
-    if(CommFIFO_Count() == 0)
-    {
-        GPIO_WriteBit(GPIOC, GPIO_Pin_11, Bit_SET);
-    }
-    else
-    {
-        GPIO_WriteBit(GPIOC, GPIO_Pin_11, Bit_RESET);
-    }
-
     ETHERNET_SendFdkFrame();
 
     TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
 }
 
-uint64_t prevTVRS=0;
-uint8_t bufData[4] = {1, 2, 3, 4};
 void EXTI0_IRQHandler(void)
 {
     GPIOC->BSHR = GPIO_Pin_2;
@@ -206,8 +190,6 @@ void EXTI0_IRQHandler(void)
 
     HET_SetHeterodine(actualComm->NKCH);
     LFM_SetPack(actualComm->KP);
-
-    prevTVRS = actualComm->TVRS;
 
     GPIOC->BCR = GPIO_Pin_2;
 

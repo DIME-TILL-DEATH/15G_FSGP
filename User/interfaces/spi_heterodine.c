@@ -9,7 +9,7 @@ SPIHET_SendData_t dataBuffer[SPI_COMM_BUFFER_SIZE];
 SPIHET_SendData_t zeroData = {0};
 
 #define SPI_BUFFER_SIZE 256
-uint16_t spiBuffer[SPI_BUFFER_SIZE];
+uint8_t spiBuffer[SPI_BUFFER_SIZE];
 
 ControlPin_t PIN_CSCh1;
 ControlPin_t PIN_CSCh2;
@@ -70,8 +70,8 @@ void SPI_DMA_Init()
 
     DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
     DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
-    DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;
-    DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_HalfWord;
+    DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
+    DMA_InitStructure.DMA_MemoryDataSize = DMA_PeripheralDataSize_Byte;
 
     DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)(&SPI3->DATAR);
     DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t)spiBuffer;
@@ -97,14 +97,22 @@ void SPIHET_Init()
     SPI_InitTypeDef SPI_InitStructure={0};
 
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_SPI3, ENABLE);
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB | RCC_APB2Periph_GPIOC, ENABLE);
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_GPIOB | RCC_APB2Periph_GPIOC, ENABLE);
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);
 
+    // SPI3_NSS
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+    // SPI3_SCK
     GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
     GPIO_Init(GPIOC, &GPIO_InitStructure);
 
+    // SPI3_MOSI
     GPIO_InitStructure.GPIO_Pin = GPIO_Pin_12;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
@@ -132,13 +140,15 @@ void SPIHET_Init()
     SPI_InitStructure.SPI_Direction = SPI_Direction_1Line_Tx;
     SPI_InitStructure.SPI_Mode = SPI_Mode_Master;
 
-    SPI_InitStructure.SPI_DataSize = SPI_DataSize_16b;
+    SPI_InitStructure.SPI_DataSize = SPI_DataSize_8b;
     SPI_InitStructure.SPI_CPOL = SPI_CPOL_Low;
     SPI_InitStructure.SPI_CPHA = SPI_CPHA_1Edge;
-    SPI_InitStructure.SPI_NSS = SPI_NSS_Soft;
+    SPI_InitStructure.SPI_NSS = SPI_NSS_Hard;
     SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_2;
     SPI_InitStructure.SPI_FirstBit = SPI_FirstBit_MSB;
     SPI_Init(SPI3, &SPI_InitStructure);
+
+    SPI_SSOutputCmd(SPI3, ENABLE);
 
     SPI_Cmd(SPI3, ENABLE);
 
@@ -156,10 +166,12 @@ void SPIHET_ProcessSpiData()
             case HET_CHANNEL1:
             {
                 GPIO_ResetBits(PIN_CSCh1.port, PIN_CSCh1.pin);
+                GPIO_SetBits(PIN_CSCh2.port, PIN_CSCh2.pin);
                 break;
             }
             case HET_CHANNEL2:
             {
+                GPIO_SetBits(PIN_CSCh1.port, PIN_CSCh1.pin);
                 GPIO_ResetBits(PIN_CSCh2.port, PIN_CSCh2.pin);
                 break;
             }
@@ -167,16 +179,29 @@ void SPIHET_ProcessSpiData()
         }
 
         uint16_t command = 0x6000 | (nextData_ptr->regAddress & 0x1FFF); // 0x6 = 0110 - Write + streaming mode
+        command = __builtin_bswap16(command);
 
         if(nextData_ptr->data_ptr !=0 && nextData_ptr->dataLen != 0)
         {
             memcpy(&spiBuffer[0], &command, 2);
-            memcpy(&spiBuffer[1], nextData_ptr->data_ptr, nextData_ptr->dataLen * 2);
-            DMA_SetCurrDataCounter(DMA2_Channel2, nextData_ptr->dataLen + 1);
+            memcpy(&spiBuffer[2], nextData_ptr->data_ptr, nextData_ptr->dataLen);
+            DMA_SetCurrDataCounter(DMA2_Channel2, nextData_ptr->dataLen + AD9912_COMMAND_SIZE);
         }
     }
 }
 
+void sendThroughSpi3(SPIHET_SendData_t* sendData_ptr)
+{
+    uint16_t command = 0x6000 | (sendData_ptr->regAddress & 0x1FFF); // 0x6 = 0110 - Write + streaming mode
+    command = __builtin_bswap16(command);
+
+    if(sendData_ptr->data_ptr !=0 && sendData_ptr->dataLen != 0)
+    {
+        memcpy(&spiBuffer[0], &command, 2);
+        memcpy(&spiBuffer[2], sendData_ptr->data_ptr, sendData_ptr->dataLen);
+        DMA_SetCurrDataCounter(DMA2_Channel2, sendData_ptr->dataLen + AD9912_COMMAND_SIZE);
+    }
+}
 
 void SPIHET_Task()
 {

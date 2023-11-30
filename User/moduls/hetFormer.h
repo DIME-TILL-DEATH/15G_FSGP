@@ -5,11 +5,10 @@
 
 #include "debug.h"
 
-#define NUM_WORDS16_FTW0 3
-#define NUM_WORDS16_AMPLITUDE 1
-
+#define HET_FTW0_REG_SIZE 6
 #define HET_FTW0_REG_ADDRES_HW 0x01AB
-#define HET_FTW0_REG_SIZE_16WORD 3
+
+#define HET_AMPLITUDE_REG_SIZE 2
 
 typedef enum
 {
@@ -19,11 +18,11 @@ typedef enum
 
 typedef struct
 {
-    uint16_t FTW0_Ch1[NUM_WORDS16_FTW0];
-    uint16_t FTW0_Ch2[NUM_WORDS16_FTW0];
+    uint8_t FTW0_Ch1[HET_FTW0_REG_SIZE];
+    uint8_t FTW0_Ch2[HET_FTW0_REG_SIZE];
     HET_FilterState_t filterState[6];
-    uint16_t amplitudeCorrectionCh1;
-    uint16_t amplitudeCorrectionCh2;
+    uint8_t amplitudeCorrectionCh1[HET_AMPLITUDE_REG_SIZE];
+    uint8_t amplitudeCorrectionCh2[HET_AMPLITUDE_REG_SIZE];
 }HET_Data_t;
 
 void HET_Init();

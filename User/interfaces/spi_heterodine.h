@@ -7,6 +7,8 @@
 
 #include "dds1508.h"
 
+#define AD9912_COMMAND_SIZE 2
+
 typedef enum
 {
     HET_CHANNEL1 = 1,
@@ -17,7 +19,7 @@ typedef struct
 {
     SPIHET_Channel_t channel;
     uint16_t regAddress;
-    uint16_t* data_ptr;
+    uint32_t* data_ptr;
     uint16_t dataLen;
 }SPIHET_SendData_t;
 
