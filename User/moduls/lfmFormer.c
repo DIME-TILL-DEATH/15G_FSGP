@@ -112,7 +112,6 @@ LfmPack_t packData[PACK_COUNT+1] =
 };
 
 DdsRegisterData_t ddsPackData[2*(PACK_COUNT+1)] = {0}; // Base pack(Zond impulse)
-bool onImitSignal = 1;
 
 void TIM6_IRQHandler(void)  __attribute__((interrupt("WCH-Interrupt-fast")));
 
@@ -209,14 +208,18 @@ void LFM_Init()
     {
         ddsPackData[i] = calcPackData(packData[i], 0, 0);
         ddsPackData[PACK_COUNT + 1 + i] = calcPackData(packData[i], 120, 0.2);
-        //ddsImitData[i] = calcPackData(packData[i], 200, 0.005);
     }
+
+    LFM_WriteStartupData();
 }
 
-void LFM_RecalcImitData(bool enableImit, double_t delay, double_t dopplerFreq)
+void LFM_WriteStartupData()
 {
-    onImitSignal = enableImit;
 
+}
+
+void LFM_RecalcImitData(double_t delay, double_t dopplerFreq)
+{
     for(uint16_t i=0; i<PACK_COUNT+1; i++)
     {
         ddsPackData[PACK_COUNT + 1 + i] = calcPackData(packData[i], delay, dopplerFreq);
@@ -253,7 +256,7 @@ void LFM_SetPackBuffered(uint8_t packNumber)
 
     comm.address = DDS1508_ADDR_CH1_TPH3_L;
     comm.value = ddsPackData[packNumber].tph3[0];
-        LfmFIFO_PutData(comm);
+    LfmFIFO_PutData(comm);
 
     comm.address = DDS1508_ADDR_CH1_TPH4_L;
     comm.value = ddsPackData[packNumber].tph4[0];
@@ -314,39 +317,19 @@ void TIM6_IRQHandler(void)
 // Fast routine
 static inline void LFM_WriteReg(uint16_t address, uint16_t value)
 {
-//    PIN_CS.port->BCR = PIN_CS.pin;
-
     PIN_ADR.port->BCR = PIN_ADR.pin;
     PIN_WR.port->BCR = PIN_WR.pin;
     DATA_PORT->OUTDR =  address;
     PIN_WR.port->BSHR = PIN_WR.pin;
-    PIN_WR.port->BSHR = PIN_ADR.pin;
+    PIN_ADR.port->BSHR = PIN_ADR.pin;
 
     PIN_WR.port->BCR = PIN_WR.pin;
     DATA_PORT->OUTDR = value;
     PIN_WR.port->BSHR = PIN_WR.pin;
-
-//    PIN_CS.port->BSHR = PIN_CS.pin;
-}
-
-void LFM_SetStage2()
-{
-//    double_t stage2_length = STAGE2_LENGTH;
-//    uint64_t tph2 = DDS1508_CalcTWord(stage2_length);
-//
-//    PIN_WR.port->BCR = PIN_WR.pin;
-//    PIN_CS.port->BCR = PIN_CS.pin;
-//
-//    LFM_WriteReg(DDS1508_ADDR_CH1_TPH2_L, tph2 & 0xFFFF);
-//
-//    PIN_WR.port->BCR = PIN_WR.pin;
-//    PIN_CS.port->BSHR = PIN_CS.pin;
 }
 
 void LFM_SetPack(uint8_t packNumber)
 {
-    PIN_WR.port->BCR = PIN_WR.pin;
-
     PIN_CS.port->BCR = PIN_CS.pin;
     LFM_WriteReg(DDS1508_ADDR_CH1_TPH1_L, ddsPackData[packNumber].tph1[0]);
 
@@ -358,14 +341,9 @@ void LFM_SetPack(uint8_t packNumber)
     LFM_WriteReg(DDS1508_ADDR_CH1_dF_M, ddsPackData[packNumber].deltaF[1]);
     LFM_WriteReg(DDS1508_ADDR_CH1_dF_L, ddsPackData[packNumber].deltaF[0]);
 
-//    PIN_WR.port->BCR = PIN_WR.pin;
-//    PIN_CS.port->BSHR = PIN_CS.pin;
-//    PIN_CS.port->BCR = PIN_CS.pin;
-
     LFM_WriteReg(DDS1508_ADDR_CH1_TPH3_L, ddsPackData[packNumber].tph3[0]);
     LFM_WriteReg(DDS1508_ADDR_CH1_TPH4_L, ddsPackData[packNumber].tph4[0]);
 
-    PIN_WR.port->BCR = PIN_WR.pin;
     PIN_CS.port->BSHR = PIN_CS.pin;
 }
 //------------------------------------------------------------------------------

@@ -206,13 +206,13 @@ void ETHERNET_ParseUdpFrame(const RecievedFrameData* frame)
     {
         answerFrameHeader = parsedFrameHeader;
 
-
         memcpy(mstMACAddr, parsedFrameHeader.structData.srcMAC, 6);
         memcpy(mstIPAddr, parsedFrameHeader.structData.srcIpAddress, 4);
 
         uint8_t answer[512];
         uint32_t outDataLen;
 
+        memset(answer, 0, 512);
 
         parseFrame(&(frame->frameData[UDP_PAYLOAD_POSITION]), __builtin_bswap16(parsedFrameHeader.structData.udpLength) - UDP_ONLY_HEADER_SIZE, &(answer[UDP_PAYLOAD_POSITION]), &outDataLen);
 
@@ -249,9 +249,9 @@ void ETHERNET_ParseUdpFrame(const RecievedFrameData* frame)
             ETH_TxPktChainMode(totalAnswerLen, answer);
 
             //===========================================================
-            uint8_t macDst[] = {0x00, 0xc0, 0x88, 0x02, 0x75, 0x7d};
+            uint8_t macDst[] = {0x90, 0xe2, 0xba, 0xca, 0xac, 0x58};
             memcpy(answerFrameHeader.structData.dstMAC, macDst, 6);
-            uint8_t ipDst[] = {10, 0, 1, 102};
+            uint8_t ipDst[] = {10, 0, 0, 5};
             memcpy(answerFrameHeader.structData.dstIpAddress, ipDst, 4);
 
             memcpy(answer, answerFrameHeader.rawData, UDP_FULL_HEADER_SIZE);
@@ -282,6 +282,9 @@ void ETHERNET_SendFdkFrame()
 
         memcpy(fdkFrameHeader.structData.srcMAC, MACAddr, 6);
         memcpy(fdkFrameHeader.structData.dstMAC, mstMACAddr, 6);
+        //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+//        uint8_t macDst[] = {0x90, 0xe2, 0xba, 0xca, 0xac, 0x58};
+//        memcpy(fdkFrameHeader.structData.dstMAC, macDst, 6);
 
         fdkFrameHeader.structData.frameType = __builtin_bswap16(FRAME_TYPE_IPv4);
         fdkFrameHeader.structData.ipVerHdrLen = 0x45;
@@ -298,6 +301,9 @@ void ETHERNET_SendFdkFrame()
 
         memcpy(fdkFrameHeader.structData.srcIpAddress, IPAddr, 4);
         memcpy(fdkFrameHeader.structData.dstIpAddress, mstIPAddr, 4);
+        //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+//        uint8_t ipDst[] = {10, 0, 0, 5};
+//        memcpy(fdkFrameHeader.structData.dstIpAddress, ipDst, 4);
 
         fdkFrameHeader.structData.srcPort = __builtin_bswap16(srcPort);
         fdkFrameHeader.structData.dstPort = __builtin_bswap16(fdkDstPort);

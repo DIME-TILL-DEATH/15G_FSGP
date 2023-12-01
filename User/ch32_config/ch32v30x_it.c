@@ -67,11 +67,11 @@ void EXTI9_5_IRQHandler(void)
  */
 void ETH_IRQHandler(void)
 {
-   if(ETH->DMASR & ETH_DMA_IT_R) GPIO_SetBits(GPIOC, GPIO_Pin_3);
+//   if(ETH->DMASR & ETH_DMA_IT_R) GPIO_SetBits(GPIOC, GPIO_Pin_3);
 
     ETHDRV_ETHIsr();
 
-    GPIO_ResetBits(GPIOC, GPIO_Pin_3);
+//    GPIO_ResetBits(GPIOC, GPIO_Pin_3);
 }
 
 /*********************************************************************

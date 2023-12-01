@@ -98,6 +98,7 @@ void TIM3_Init(void)
 //    NVIC_EnableIRQ(TIM3_IRQn);
 }
 
+bool flagSendFdk = 0;
 int main(void)
 {
 	SystemCoreClockUpdate();
@@ -139,45 +140,58 @@ int main(void)
 
     //Delay_Ms(2000);
 
-    //LFM_SetStage2();
-
 	while(1)
     {
 	    SPIHET_Task();
         ETHDRV_MainTask();
 
+        if(flagSendFdk)
+        {
+            ETHERNET_SendFdkFrame();
+            flagSendFdk = 0;
+        }
+
         if(recievedFrameData.frameLength>0)
         {
-            GPIO_SetBits(GPIOC, GPIO_Pin_3);
+            NVIC_DisableIRQ(TIM3_IRQn);
 
-            uint16_t frameType = recievedFrameData.frameData[POS_FRAME_TYPE_HW]<<8 | recievedFrameData.frameData[POS_FRAME_TYPE_LW];
-            uint8_t ipProtocolType = recievedFrameData.frameData[POS_PROTOCOL];
+            GPIO_SetBits(GPIOC, GPIO_Pin_3);
+            RecievedFrameData recievedFrameDataSaved;
+            memcpy(&recievedFrameDataSaved, &recievedFrameData, recievedFrameData.frameLength);
+
+            uint16_t frameType = recievedFrameDataSaved.frameData[POS_FRAME_TYPE_HW]<<8 | recievedFrameDataSaved.frameData[POS_FRAME_TYPE_LW];
+            uint8_t ipProtocolType = recievedFrameDataSaved.frameData[POS_PROTOCOL];
 
             switch(frameType)
             {
-            case FRAME_TYPE_ARP:
-                ETHERNET_ParseArpFrame(&recievedFrameData);
-                break;
-
-            case FRAME_TYPE_IPv4:
-                switch(ipProtocolType)
+                case FRAME_TYPE_ARP:
                 {
-                case IPv4_PROTOCOL_UDP: ETHERNET_ParseUdpFrame(&recievedFrameData); break;
-                case IPv4_PROTOCOL_ICMP: ETHERNET_ParseIcmpFrame(&recievedFrameData); break;
+                    ETHERNET_ParseArpFrame(&recievedFrameDataSaved);
+                    break;
                 }
-                break;
+
+                case FRAME_TYPE_IPv4:
+                {
+                    switch(ipProtocolType)
+                    {
+                    case IPv4_PROTOCOL_UDP: ETHERNET_ParseUdpFrame(&recievedFrameDataSaved); break;
+                    case IPv4_PROTOCOL_ICMP: ETHERNET_ParseIcmpFrame(&recievedFrameDataSaved); break;
+                    }
+                    break;
+                }
             }
             recievedFrameData.frameLength = 0;
+            NVIC_EnableIRQ(TIM3_IRQn);
 
             GPIO_ResetBits(GPIOC, GPIO_Pin_3);
         }
 	}
 }
 
-// IRQ handlers
+// IRQ handlers ======================
 void TIM3_IRQHandler()
 {
-    ETHERNET_SendFdkFrame();
+    flagSendFdk = 1;
 
     TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
 }
@@ -188,7 +202,7 @@ void EXTI0_IRQHandler(void)
 
     FSGP_Command_Frame* actualComm = CommFIFO_GetData();
 
-    HET_SetHeterodine(actualComm->NKCH);
+//    HET_SetHeterodine(actualComm->NKCH);
     LFM_SetPack(actualComm->KP);
 
     GPIOC->BCR = GPIO_Pin_2;

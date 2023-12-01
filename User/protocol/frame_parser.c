@@ -37,6 +37,11 @@ void parseFrame(const uint8_t* inData, uint32_t inDataLen, uint8_t* outData, uin
 
                 *outDataLen = inDataLen + 16;
             }
+            else
+            {
+                printf("Comm buffer full!\r\n");
+                return;
+            }
 
             FrameHeader frameHeader;
             memset(frameHeader.rawData, 0, FRAME_HEADER_SIZE);
@@ -86,7 +91,7 @@ void parseFrame(const uint8_t* inData, uint32_t inDataLen, uint8_t* outData, uin
 
             float_t fDoppler = 2 * speedMS * FSTART / 300000000;
 
-            LFM_RecalcImitData(true, delay, fDoppler);
+            LFM_RecalcImitData(delay, fDoppler);
 
             memcpy(outData, inData, inDataLen);
             *outDataLen = inDataLen;
@@ -96,7 +101,11 @@ void parseFrame(const uint8_t* inData, uint32_t inDataLen, uint8_t* outData, uin
             break;
         }
 
-        default: printf("recieved frame has unknown frame type\r\n");
+        default:
+            {
+
+                printf("unknown frame type: %d\r\n", inData[HEADER_FRAME_TYPE_POS]);
+            }
     }
 }
 

@@ -38,9 +38,10 @@ typedef struct
 }DdsRegisterData_t;
 
 void LFM_Init();
+void LFM_WriteStartupData();
 void LFM_SetPack(uint8_t packNumber);
 void LFM_SetPackBuffered(uint8_t packNumber);
-void LFM_RecalcImitData(bool enableImit, double_t delay, double_t dopplerFreq);
+void LFM_RecalcImitData(double_t delay, double_t dopplerFreq);
 
 void LFM_SetStage2();
 
