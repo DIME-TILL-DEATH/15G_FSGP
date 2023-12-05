@@ -5,6 +5,8 @@
 
 #include "debug.h"
 
+#define HET_SERIAL_REG_ADDRES 0x0005
+
 #define HET_FTW0_REG_SIZE 6
 #define HET_FTW0_REG_ADDRES_HW 0x01AB
 
@@ -27,6 +29,7 @@ typedef struct
 
 void HET_Init();
 void HET_SetHeterodine(uint8_t freqNum);
+void HET_UpdateIO();
 
 
 #endif /* USER_MODULS_HETFORMER_H_ */

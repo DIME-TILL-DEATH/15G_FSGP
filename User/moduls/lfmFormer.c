@@ -213,11 +213,6 @@ void LFM_Init()
     LFM_WriteStartupData();
 }
 
-void LFM_WriteStartupData()
-{
-
-}
-
 void LFM_RecalcImitData(double_t delay, double_t dopplerFreq)
 {
     for(uint16_t i=0; i<PACK_COUNT+1; i++)
@@ -225,6 +220,72 @@ void LFM_RecalcImitData(double_t delay, double_t dopplerFreq)
         ddsPackData[PACK_COUNT + 1 + i] = calcPackData(packData[i], delay, dopplerFreq);
     }
 }
+
+// Fast routine
+static inline void LFM_WriteReg(uint16_t address, uint16_t value)
+{
+    PIN_ADR.port->BCR = PIN_ADR.pin;
+    PIN_WR.port->BCR = PIN_WR.pin;
+    DATA_PORT->OUTDR =  address;
+    PIN_WR.port->BSHR = PIN_WR.pin;
+    PIN_ADR.port->BSHR = PIN_ADR.pin;
+
+    PIN_WR.port->BCR = PIN_WR.pin;
+    DATA_PORT->OUTDR = value;
+    PIN_WR.port->BSHR = PIN_WR.pin;
+}
+
+
+void LFM_WriteStartupData()
+{
+    PIN_CS.port->BCR = PIN_CS.pin;
+
+    LFM_WriteReg(DDS1508_ADDR_SWRST, 0x0078);
+    LFM_WriteReg(DDS1508_ADDR_CTR, 0x1000);
+    LFM_WriteReg(DDS1508_ADDR_SYNC, 0x4182);
+    LFM_WriteReg(DDS1508_ADDR_ROUTE, 0x0000);
+
+    LFM_WriteReg(DDS1508_ADDR_CH1_F_H, ddsPackData[0].startF[2]);
+    LFM_WriteReg(DDS1508_ADDR_CH1_F_M, ddsPackData[0].startF[1]);
+    LFM_WriteReg(DDS1508_ADDR_CH1_F_L, ddsPackData[0].startF[0]);
+
+    LFM_WriteReg(DDS1508_ADDR_CH1_dF_H, ddsPackData[0].deltaF[2]);
+    LFM_WriteReg(DDS1508_ADDR_CH1_dF_M, ddsPackData[0].deltaF[1]);
+    LFM_WriteReg(DDS1508_ADDR_CH1_dF_L, ddsPackData[0].deltaF[0]);
+
+    LFM_WriteReg(DDS1508_ADDR_CH1_TPH1_L, ddsPackData[0].tph1[0]);
+    LFM_WriteReg(DDS1508_ADDR_CH1_TPH2_L, ddsPackData[0].tph2[0]);
+
+    LFM_WriteReg(DDS1508_ADDR_CH1_TPH3_L, ddsPackData[0].tph3[0]);
+    LFM_WriteReg(DDS1508_ADDR_CH1_TPH4_L, ddsPackData[0].tph4[0]);
+
+    LFM_WriteReg(DDS1508_ADDR_CLR, 0x003F);
+    LFM_WriteReg(DDS1508_ADDR_CH1_LS_CTR, 0xBC10);
+
+    PIN_CS.port->BSHR = PIN_CS.pin;
+}
+
+void LFM_SetPack(uint8_t packNumber)
+{
+    PIN_CS.port->BCR = PIN_CS.pin;
+    LFM_WriteReg(DDS1508_ADDR_CH1_TPH1_L, ddsPackData[packNumber].tph1[0]);
+
+    LFM_WriteReg(DDS1508_ADDR_CH1_F_H, ddsPackData[packNumber].startF[2]);
+    LFM_WriteReg(DDS1508_ADDR_CH1_F_M, ddsPackData[packNumber].startF[1]);
+    LFM_WriteReg(DDS1508_ADDR_CH1_F_L, ddsPackData[packNumber].startF[0]);
+
+    LFM_WriteReg(DDS1508_ADDR_CH1_dF_H, ddsPackData[packNumber].deltaF[2]);
+    LFM_WriteReg(DDS1508_ADDR_CH1_dF_M, ddsPackData[packNumber].deltaF[1]);
+    LFM_WriteReg(DDS1508_ADDR_CH1_dF_L, ddsPackData[packNumber].deltaF[0]);
+
+    LFM_WriteReg(DDS1508_ADDR_CH1_TPH3_L, ddsPackData[packNumber].tph3[0]);
+    LFM_WriteReg(DDS1508_ADDR_CH1_TPH4_L, ddsPackData[packNumber].tph4[0]);
+
+    PIN_CS.port->BSHR = PIN_CS.pin;
+}
+//------------------------------------------------------------------------------
+// bufferred (not used)
+//------------------------------------------------------------------------------
 
 void LFM_SetPackBuffered(uint8_t packNumber)
 {
@@ -263,7 +324,6 @@ void LFM_SetPackBuffered(uint8_t packNumber)
     LfmFIFO_PutData(comm);
 
     NVIC_EnableIRQ(TIM6_IRQn);
-
 }
 
 DDS1508_Command_t actualComm;
@@ -313,40 +373,3 @@ void TIM6_IRQHandler(void)
         break;
     }
 }
-
-// Fast routine
-static inline void LFM_WriteReg(uint16_t address, uint16_t value)
-{
-    PIN_ADR.port->BCR = PIN_ADR.pin;
-    PIN_WR.port->BCR = PIN_WR.pin;
-    DATA_PORT->OUTDR =  address;
-    PIN_WR.port->BSHR = PIN_WR.pin;
-    PIN_ADR.port->BSHR = PIN_ADR.pin;
-
-    PIN_WR.port->BCR = PIN_WR.pin;
-    DATA_PORT->OUTDR = value;
-    PIN_WR.port->BSHR = PIN_WR.pin;
-}
-
-void LFM_SetPack(uint8_t packNumber)
-{
-    PIN_CS.port->BCR = PIN_CS.pin;
-    LFM_WriteReg(DDS1508_ADDR_CH1_TPH1_L, ddsPackData[packNumber].tph1[0]);
-
-    LFM_WriteReg(DDS1508_ADDR_CH1_F_H, ddsPackData[packNumber].startF[2]);
-    LFM_WriteReg(DDS1508_ADDR_CH1_F_M, ddsPackData[packNumber].startF[1]);
-    LFM_WriteReg(DDS1508_ADDR_CH1_F_L, ddsPackData[packNumber].startF[0]);
-
-    LFM_WriteReg(DDS1508_ADDR_CH1_dF_H, ddsPackData[packNumber].deltaF[2]);
-    LFM_WriteReg(DDS1508_ADDR_CH1_dF_M, ddsPackData[packNumber].deltaF[1]);
-    LFM_WriteReg(DDS1508_ADDR_CH1_dF_L, ddsPackData[packNumber].deltaF[0]);
-
-    LFM_WriteReg(DDS1508_ADDR_CH1_TPH3_L, ddsPackData[packNumber].tph3[0]);
-    LFM_WriteReg(DDS1508_ADDR_CH1_TPH4_L, ddsPackData[packNumber].tph4[0]);
-
-    PIN_CS.port->BSHR = PIN_CS.pin;
-}
-//------------------------------------------------------------------------------
-
-
-

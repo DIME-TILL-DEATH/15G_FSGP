@@ -39,11 +39,11 @@ void HET_Init()
 void HET_SetHeterodine(uint8_t freqNum)
 {
     freqNum = freqNum - 1;
-    if(freqNum > FREQ_COUNT)
-    {
-        printf("Invalid NKCH\r\n");
-        return;
-    }
+//    if(freqNum > FREQ_COUNT)
+//    {
+//       // printf("Invalid NKCH: %d\r\n", freqNum);
+//        return;
+//    }
 
     SPIHET_SendData_t dataToSend;
 
@@ -53,7 +53,6 @@ void HET_SetHeterodine(uint8_t freqNum)
     dataToSend.dataLen = HET_FTW0_REG_SIZE;
 
     SPIHET_PutDataInSendBuffer(&dataToSend);
-    SPIHET_ProcessSpiData(); // Send first command while filling buffer
 
     dataToSend.channel = HET_CHANNEL2;
     dataToSend.regAddress = HET_FTW0_REG_ADDRES_HW;
@@ -61,8 +60,28 @@ void HET_SetHeterodine(uint8_t freqNum)
     dataToSend.dataLen = HET_FTW0_REG_SIZE;
 
     SPIHET_PutDataInSendBuffer(&dataToSend);
+    SPIHET_ProcessSpiFifo();
+}
 
+uint8_t updateIOData = 0x01;
 
+void HET_UpdateIO()
+{
+    SPIHET_SendData_t dataToSend;
+
+    dataToSend.channel = HET_CHANNEL1;
+    dataToSend.regAddress = HET_SERIAL_REG_ADDRES;
+    dataToSend.data_ptr = &updateIOData;
+    dataToSend.dataLen = 1;
+
+    SPIHET_SendSpiData(&dataToSend); // send as fast as we can
+
+    dataToSend.channel = HET_CHANNEL2;
+    dataToSend.regAddress = HET_SERIAL_REG_ADDRES;
+    dataToSend.data_ptr = &updateIOData;
+    dataToSend.dataLen = 1;
+
+    SPIHET_PutDataInSendBuffer(&dataToSend);
 }
 
 uint64_t calcFTW0fromDiv(uint16_t divider)

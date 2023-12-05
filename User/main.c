@@ -19,7 +19,6 @@
 #include "frame_parser.h"
 
 void EXTI0_IRQHandler(void)  __attribute__((interrupt("WCH-Interrupt-fast")));
-void TIM3_IRQHandler(void)  __attribute__((interrupt(/*"WCH-Interrupt-fast"*/)));
 
 bool ledState=0;
 uint8_t framesCounter = 0;
@@ -62,12 +61,6 @@ void INT_Init()
 
     EXTI_Init(&EXTI_InitStructure);
 
-//    NVIC_InitStructure.NVIC_IRQChannel = EXTI0_IRQn;
-//    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
-//    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;
-//    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-//    NVIC_Init(&NVIC_InitStructure);
-
 //    GPIO_EXTILineConfig(GPIO_PortSourceGPIOA, GPIO_PinSource14); //PA14 - STROBE
 //    EXTI_InitStructure.EXTI_Line = EXTI_Line14;
 //    EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
@@ -95,10 +88,10 @@ void TIM3_Init(void)
 
     TIM_Cmd(TIM3, ENABLE);
     TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
-//    NVIC_EnableIRQ(TIM3_IRQn);
 }
 
 bool flagSendFdk = 0;
+bool flagSetHeterodine = 0;
 int main(void)
 {
 	SystemCoreClockUpdate();
@@ -127,12 +120,14 @@ int main(void)
     TIM3_Init();
     INT_Init();
 
-    NVIC_SetPriority(TIM3_IRQn,   (4<<5) | (0x01<<4));/* Group priority 3, lower overall priority */
-    NVIC_SetPriority(ETH_IRQn, (3<<5) | (0x01<<4));
-    NVIC_SetPriority(EXTI15_10_IRQn, (1<<5) | (0x01<<4));
-    NVIC_SetPriority(EXTI0_IRQn, (0<<5) | (0x01<<4));/* Group priority 0, overall priority is higher */
+    NVIC_SetPriority(TIM3_IRQn,     (4<<5) | (0x01<<4));/* Group priority 3, lower overall priority */
+    NVIC_SetPriority(ETH_IRQn,      (3<<5) | (0x01<<4));
+    //NVIC_SetPriority(EXTI15_10_IRQn,(2<<5) | (0x01<<4));
+    NVIC_SetPriority(EXTI0_IRQn,    (0<<5) | (0x01<<4));
+    //NVIC_SetPriority(SPI3_IRQn,     (1<<5) | (0x01<<4));/* Group priority 0, overall priority is higher */
 
-    printf("NVIC priorities EXTI: %x, ETH: %x, TIM3: %x\r\n", NVIC->IPRIOR[EXTI0_IRQn], NVIC->IPRIOR[ETH_IRQn], NVIC->IPRIOR[TIM3_IRQn]);
+    printf("NVIC priorities SPI3: %x, EXTI: %x, ETH: %x, TIM3: %x\r\n",
+            NVIC->IPRIOR[SPI3_IRQn], NVIC->IPRIOR[EXTI0_IRQn], NVIC->IPRIOR[ETH_IRQn], NVIC->IPRIOR[TIM3_IRQn]);
 
     // Enable IRQ's only when all initiallization finished
     NVIC_EnableIRQ(EXTI0_IRQn);
@@ -142,13 +137,18 @@ int main(void)
 
 	while(1)
     {
-	    SPIHET_Task();
         ETHDRV_MainTask();
 
         if(flagSendFdk)
         {
             ETHERNET_SendFdkFrame();
             flagSendFdk = 0;
+        }
+
+        if(flagSetHeterodine && CommFIFO_Count()>0)
+        {
+            HET_SetHeterodine(CommFIFO_PeekData().NKCH);
+            flagSetHeterodine = 0;
         }
 
         if(recievedFrameData.frameLength>0)
@@ -202,8 +202,11 @@ void EXTI0_IRQHandler(void)
 
     FSGP_Command_Frame* actualComm = CommFIFO_GetData();
 
-//    HET_SetHeterodine(actualComm->NKCH);
+    HET_UpdateIO();
+
     LFM_SetPack(actualComm->KP);
+
+    flagSetHeterodine = 1;
 
     GPIOC->BCR = GPIO_Pin_2;
 

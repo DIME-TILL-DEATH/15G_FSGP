@@ -3,6 +3,8 @@
 #include "frame_parser.h"
 #include "command_fifo.h"
 
+#include "hetFormer.h"
+
 #include "fsgp_command_frame.h"
 #include "fsgp_fdk_frame.h"
 #include "fsgp_signal_params_frame.h"
@@ -15,8 +17,6 @@ void parseFrame(const uint8_t* inData, uint32_t inDataLen, uint8_t* outData, uin
 {
     *outDataLen = 0;
 
-//    if(inData[HEADER_FRAME_TYPE_POS] == FSGP_COMMAND_FRAME)
-//    {
     switch(inData[HEADER_FRAME_TYPE_POS])
     {
         case FSGP_COMMAND_FRAME:
@@ -27,6 +27,11 @@ void parseFrame(const uint8_t* inData, uint32_t inDataLen, uint8_t* outData, uin
             mConvertEndians(&recieved_command);
 
             if(recieved_command.SBR_OCH) CommFIFO_Clear();
+
+            if(CommFIFO_Count() == 0)
+            {
+                HET_SetHeterodine(recieved_command.NKCH);
+            }
 
             if(CommFIFO_PutData(recieved_command))
             {
