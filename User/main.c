@@ -98,21 +98,16 @@ int main(void)
 	Delay_Init();
 	USART_Printf_Init(115200);
 
+    printf("UDP client. Recieving control frames for FSGP\r\n");
+    printf("SystemClk: %d\r\n",SystemCoreClock);
+    printf("ChipID: %08x\r\n", DBGMCU_GetCHIPID());
+
+    Delay_Ms(1000);
+
 	CommFIFO_Init();
 
 	LFM_Init();
 	HET_Init();
-
-//	RCC_ClocksTypeDef RCC_ClocksStatus={0};
-//    RCC_GetClocksFreq(&RCC_ClocksStatus);
-//    printf("SYSCLK_Frequency-%d\r\n", RCC_ClocksStatus.SYSCLK_Frequency);
-//    printf("HCLK_Frequency-%d\r\n", RCC_ClocksStatus.HCLK_Frequency);
-//    printf("PCLK1_Frequency-%d\r\n", RCC_ClocksStatus.PCLK1_Frequency);
-//    printf("PCLK2_Frequency-%d\r\n", RCC_ClocksStatus.PCLK2_Frequency);
-
-	printf("UDP client. Recieving control frames for FSGP\r\n");
-	printf("SystemClk: %d\r\n",SystemCoreClock);
-	printf( "ChipID: %08x\r\n", DBGMCU_GetCHIPID() );
 
 	PIN_Init();
 	ETHERNET_Init();
@@ -205,6 +200,8 @@ void EXTI0_IRQHandler(void)
     HET_UpdateIO();
 
     LFM_SetPack(actualComm->KP);
+
+    HET_SetFilters(actualComm->NKCH);
 
     flagSetHeterodine = 1;
 

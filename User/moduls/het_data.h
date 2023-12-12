@@ -3,9 +3,10 @@
 
 #include <stdint.h>
 
+
 #define  FREQ_COUNT 45
 
-uint8_t dividerHet1[] = {
+uint8_t dividerHet1[FREQ_COUNT] = {
         7,
         8,
         9,
@@ -53,7 +54,7 @@ uint8_t dividerHet1[] = {
         13
 };
 
-uint8_t dividerHet2[] = {
+uint8_t dividerHet2[FREQ_COUNT] = {
         8,
         8,
         8,
@@ -99,5 +100,11 @@ uint8_t dividerHet2[] = {
         13,
         13,
         13
+};
+
+uint8_t hetFilterStates[FREQ_COUNT][6]=
+{
+        {0, 0, 0, 0, 0, 0},
+        {1, 0, 0, 0, 0, 0}
 };
 #endif /* USER_MODULS_HET_DATA_H_ */

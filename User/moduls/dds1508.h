@@ -6,6 +6,8 @@
 
 #include "debug.h"
 
+#include "control_pin.h"
+
 #define DDS1508_ADDR_SWRST  0x0000
 #define DDS1508_ADDR_CTR    0x0003
 #define DDS1508_ADDR_SYNC   0x0004
@@ -65,12 +67,6 @@
 #define DDS1508_ADDR_CH2_dF_L 0x2044
 #define DDS1508_ADDR_CH2_dF_M 0x2045
 #define DDS1508_ADDR_CH2_dF_H 0x2046
-
-typedef struct
-{
-    GPIO_TypeDef* port;
-    uint16_t pin;
-}ControlPin_t;
 
 typedef struct
 {

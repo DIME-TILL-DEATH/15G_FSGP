@@ -1,6 +1,8 @@
 #include <math.h>
 #include <memory.h>
 
+#include "control_pin.h"
+
 #include "spi_heterodine.h"
 
 #include "het_data.h"
@@ -12,8 +14,26 @@ void sendSPIData(uint16_t* data, uint8_t numWords);
 
 HET_Data_t hetData[FREQ_COUNT];
 
+ControlPin_t pinFilter[FILTER_COUNT];
+
 void HET_Init()
 {
+    GPIO_InitTypeDef GPIO_InitStructure={0};
+
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);
+
+    pinFilter[0].pin = GPIO_Pin_6;
+    pinFilter[0].port = GPIOC;
+    GPIO_InitStructure.GPIO_Pin = pinFilter[0].pin;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(pinFilter[0].port, &GPIO_InitStructure);
+
+    pinFilter[1].pin = GPIO_Pin_7;
+    pinFilter[1].port = GPIOC;
+    GPIO_InitStructure.GPIO_Pin = pinFilter[1].pin;
+    GPIO_Init(pinFilter[0].port, &GPIO_InitStructure);
+
     for(uint8_t i=0; i < FREQ_COUNT; i++)
     {
         uint64_t ftw0_ch1 = calcFTW0fromDiv(dividerHet1[i]);
@@ -31,6 +51,11 @@ void HET_Init()
         hetData[i].FTW0_Ch2[3] = (ftw0_ch2>>16) & 0xFF;
         hetData[i].FTW0_Ch2[4] = (ftw0_ch2>>8) & 0xFF;
         hetData[i].FTW0_Ch2[5] = (ftw0_ch2>>0) & 0xFF;
+
+        for(uint8_t j=0; j<FILTER_COUNT; j++)
+        {
+            hetData[i].filterState[j] = hetFilterStates[i][j];
+        }
     }
 
     SPIHET_Init();
@@ -89,4 +114,10 @@ uint64_t calcFTW0fromDiv(uint16_t divider)
     return pow(2, 48) / divider;
 }
 
-
+void HET_SetFilters(uint8_t freqNum)
+{
+    for(uint8_t i=0; i<FILTER_COUNT; i++)
+    {
+        GPIO_WriteBit(pinFilter[i].port, pinFilter[i].pin, hetData[freqNum].filterState[i]);
+    }
+}

@@ -22,12 +22,12 @@
 
 typedef struct
 {
-    // word 12, [31:24]
+    // word 12, [31:24], offset 0x6b
    uint8_t reserved1  :6;
    uint8_t SBR_OCH    :1;     //§³§¢§² §°§¹
    uint8_t REG        :1;     //§²§¦§¤
 
-   // word 12, [23:16]
+   // word 12, [23:16], offset 0x6c
    uint8_t NKCH       :8;     //§¯§¬§¹
 
    // word 12, [15:8]

@@ -5,7 +5,7 @@
 
 #include <stdbool.h>
 
-#include "dds1508.h"
+#include "control_pin.h"
 
 #define AD9912_COMMAND_SIZE 2
 
