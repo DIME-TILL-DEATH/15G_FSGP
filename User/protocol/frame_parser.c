@@ -24,6 +24,8 @@ void parseFrame(const uint8_t* inData, uint32_t inDataLen, uint8_t* outData, uin
             FSGP_Command_Frame *comand_ptr = (FSGP_Command_Frame *)&(inData[COMMAND_DATA_POS]);
             FSGP_Command_Frame recieved_command = *comand_ptr;
 
+           // printf("recieved nk4:%d\r\n", recieved_command.NKCH);
+
             mConvertEndians(&recieved_command);
 
             if(recieved_command.SBR_OCH) CommFIFO_Clear();

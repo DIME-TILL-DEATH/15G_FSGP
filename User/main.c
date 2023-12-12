@@ -207,5 +207,7 @@ void EXTI0_IRQHandler(void)
 
     GPIOC->BCR = GPIO_Pin_2;
 
+    printf("used nk4:%d\r\n", actualComm->NKCH);
+
     EXTI_ClearITPendingBit(EXTI_Line0);
 }

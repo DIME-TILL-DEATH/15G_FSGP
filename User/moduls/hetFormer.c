@@ -20,17 +20,17 @@ void HET_Init()
 {
     GPIO_InitTypeDef GPIO_InitStructure={0};
 
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
 
-    pinFilter[0].pin = GPIO_Pin_6;
-    pinFilter[0].port = GPIOC;
+    pinFilter[0].pin = GPIO_Pin_11;
+    pinFilter[0].port = GPIOA;
     GPIO_InitStructure.GPIO_Pin = pinFilter[0].pin;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
     GPIO_Init(pinFilter[0].port, &GPIO_InitStructure);
 
-    pinFilter[1].pin = GPIO_Pin_7;
-    pinFilter[1].port = GPIOC;
+    pinFilter[1].pin = GPIO_Pin_12;
+    pinFilter[1].port = GPIOA;
     GPIO_InitStructure.GPIO_Pin = pinFilter[1].pin;
     GPIO_Init(pinFilter[0].port, &GPIO_InitStructure);
 
@@ -116,6 +116,12 @@ uint64_t calcFTW0fromDiv(uint16_t divider)
 
 void HET_SetFilters(uint8_t freqNum)
 {
+    freqNum -=1;
+    if(freqNum > FREQ_COUNT)
+    {
+        printf("Set filters: incorrect NKCH: %d", freqNum++);
+    }
+
     for(uint8_t i=0; i<FILTER_COUNT; i++)
     {
         GPIO_WriteBit(pinFilter[i].port, pinFilter[i].pin, hetData[freqNum].filterState[i]);
