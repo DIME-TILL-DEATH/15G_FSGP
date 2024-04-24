@@ -193,21 +193,21 @@ void TIM3_IRQHandler()
 
 void EXTI0_IRQHandler(void)
 {
-    GPIOC->BSHR = GPIO_Pin_2;
+    //GPIOC->BSHR = GPIO_Pin_2;
 
     FSGP_Command_Frame* actualComm = CommFIFO_GetData();
 
-    HET_UpdateIO();
-
     LFM_SetPack(actualComm->KP);
+
+    HET_UpdateIO();
 
     HET_SetFilters(actualComm->NKCH);
 
     flagSetHeterodine = 1;
 
-    GPIOC->BCR = GPIO_Pin_2;
+    //GPIOC->BCR = GPIO_Pin_2;
 
-    printf("used nk4:%d\r\n", actualComm->NKCH);
+   // printf("used nk4:%d\r\n", actualComm->NKCH);
 
     EXTI_ClearITPendingBit(EXTI_Line0);
 }

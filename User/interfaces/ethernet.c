@@ -249,13 +249,13 @@ void ETHERNET_ParseUdpFrame(const RecievedFrameData* frame)
             ETH_TxPktChainMode(totalAnswerLen, answer);
 
             //===========================================================
-            uint8_t macDst[] = {0x90, 0xe2, 0xba, 0xca, 0xac, 0x58};
-            memcpy(answerFrameHeader.structData.dstMAC, macDst, 6);
-            uint8_t ipDst[] = {10, 0, 0, 5};
-            memcpy(answerFrameHeader.structData.dstIpAddress, ipDst, 4);
-
-            memcpy(answer, answerFrameHeader.rawData, UDP_FULL_HEADER_SIZE);
-            ETH_TxPktChainMode(totalAnswerLen, answer);
+//            uint8_t macDst[] = {0x90, 0xe2, 0xba, 0xca, 0xac, 0x58};
+//            memcpy(answerFrameHeader.structData.dstMAC, macDst, 6);
+//            uint8_t ipDst[] = {10, 0, 0, 5};
+//            memcpy(answerFrameHeader.structData.dstIpAddress, ipDst, 4);
+//
+//            memcpy(answer, answerFrameHeader.rawData, UDP_FULL_HEADER_SIZE);
+//            ETH_TxPktChainMode(totalAnswerLen, answer);
 
             if(framesCounter == 255) framesCounter = 0;
             else framesCounter++;

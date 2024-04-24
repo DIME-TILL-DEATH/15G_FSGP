@@ -10,7 +10,7 @@ void CommFIFO_Init()
     buf_rd_index = 0;
     buf_counter = 0;
 
-    zeroPack.NKCH = 1;
+    zeroPack.NKCH = 3;
 }
 
 bool CommFIFO_PutData(FSGP_Command_Frame new_data)
