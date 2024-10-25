@@ -28,6 +28,9 @@ void SPIHET_PutDataInSendBuffer(const SPIHET_SendData_t* data);
 void SPIHET_ProcessSpiFifo();
 void SPIHET_SendSpiData(SPIHET_SendData_t* data_ptr);
 
+void SPIHET_LockPins();
+void SPIHET_UnlockPins();
+
 uint8_t SPIHET_CommCount();
 
 #endif /* USER_INTERFACES_SPI_HETERODINE_H_ */

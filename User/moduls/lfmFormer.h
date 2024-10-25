@@ -11,9 +11,9 @@
 
 typedef struct
 {
-    uint16_t impNum;
-    double impLength;   // §¥§Ú§ã§Ü§â§Ö§ä§à§Ó §é§Ñ§ã§ä§à§ä§í
-    double period;      // §¥§Ú§ã§Ü§â§Ö§ä§à§Ó §é§Ñ§ã§ä§à§ä§í
+    uint8_t impNum;
+    uint16_t impLength;   // §¥§Ú§ã§Ü§â§Ö§ä§à§Ó §é§Ñ§ã§ä§à§ä§í
+    uint16_t period;      // §¥§Ú§ã§Ü§â§Ö§ä§à§Ó §é§Ñ§ã§ä§à§ä§í
     uint8_t sign;       // 0 - §á§à§Ý§à§Ø§Ú§ä§Ö§Ý§î§ß§í§Û §ß§Ñ§Ü§Ý§à§ß, 1-§à§ä§â§Ú§è§Ñ§ä§Ö§Ý§î§ß§í§Û
 }LfmPack_t;
 
@@ -41,7 +41,7 @@ void LFM_Init();
 void LFM_WriteStartupData();
 void LFM_SetPack(uint8_t packNumber);
 void LFM_SetPackBuffered(uint8_t packNumber);
-void LFM_RecalcImitData(double_t delay, double_t dopplerFreq);
+//void LFM_RecalcImitData(double_t delay, double_t dopplerFreq);
 
 void LFM_SetStage2();
 

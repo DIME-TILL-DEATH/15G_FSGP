@@ -96,9 +96,8 @@ void parseFrame(const uint8_t* inData, uint32_t inDataLen, uint8_t* outData, uin
 
             printf("recieved signal description frame, speed: %d, delay: %d\r\n", speedMS, delay);
 
-            float_t fDoppler = 2 * speedMS * FSTART / 300000000;
-
-            LFM_RecalcImitData(delay, fDoppler);
+            //float_t fDoppler = 2 * speedMS * FSTART / 300000000;
+            //LFM_RecalcImitData(delay, fDoppler);
 
             memcpy(outData, inData, inDataLen);
             *outDataLen = inDataLen;

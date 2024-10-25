@@ -111,7 +111,7 @@ LfmPack_t packData[PACK_COUNT+1] =
         }
 };
 
-DdsRegisterData_t ddsPackData[2*(PACK_COUNT+1)] = {0}; // Base pack(Zond impulse)
+DdsRegisterData_t ddsPackData[PACK_COUNT] = {0}; // Base pack(Zond impulse)
 
 void TIM6_IRQHandler(void)  __attribute__((interrupt("WCH-Interrupt-fast")));
 
@@ -204,15 +204,16 @@ void LFM_Init()
     LfmFIFO_Init();
 
     // fill built-in packs data on startup
-    for(uint16_t i=0; i<PACK_COUNT+1; i++)
+    for(uint16_t i=0; i<PACK_COUNT; i++)
     {
         ddsPackData[i] = calcPackData(packData[i], 0, 0);
-        ddsPackData[PACK_COUNT + 1 + i] = calcPackData(packData[i], 120, 0.2);
+        //ddsPackData[PACK_COUNT + 1 + i] = calcPackData(packData[i], 120, 0.2);
     }
 
     LFM_WriteStartupData();
 }
 
+/*
 void LFM_RecalcImitData(double_t delay, double_t dopplerFreq)
 {
     for(uint16_t i=0; i<PACK_COUNT+1; i++)
@@ -220,7 +221,7 @@ void LFM_RecalcImitData(double_t delay, double_t dopplerFreq)
         ddsPackData[PACK_COUNT + 1 + i] = calcPackData(packData[i], delay, dopplerFreq);
     }
 }
-
+*/
 // Fast routine
 static inline void LFM_WriteReg(uint16_t address, uint16_t value)
 {
@@ -267,6 +268,8 @@ void LFM_WriteStartupData()
 
 void LFM_SetPack(uint8_t packNumber)
 {
+    if(packNumber > PACK_COUNT) return;
+
     PIN_CS.port->BCR = PIN_CS.pin;
     LFM_WriteReg(DDS1508_ADDR_CH1_TPH1_L, ddsPackData[packNumber].tph1[0]);
 

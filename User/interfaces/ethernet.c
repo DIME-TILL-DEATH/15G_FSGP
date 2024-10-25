@@ -214,11 +214,13 @@ void ETHERNET_ParseUdpFrame(const RecievedFrameData* frame)
 
         memset(answer, 0, 512);
 
-        parseFrame(&(frame->frameData[UDP_PAYLOAD_POSITION]), __builtin_bswap16(parsedFrameHeader.structData.udpLength) - UDP_ONLY_HEADER_SIZE, &(answer[UDP_PAYLOAD_POSITION]), &outDataLen);
+        parseFrame(&(frame->frameData[UDP_PAYLOAD_POSITION]), __builtin_bswap16(parsedFrameHeader.structData.udpLength) - UDP_ONLY_HEADER_SIZE,
+                &(answer[UDP_PAYLOAD_POSITION]),
+                &outDataLen);
 
         if(outDataLen > 0)
         {
-            uint16_t totalAnswerLen = UDP_FULL_HEADER_SIZE+outDataLen;
+            uint16_t totalAnswerLen = UDP_FULL_HEADER_SIZE + outDataLen;
 
             memcpy(answerFrameHeader.structData.srcMAC, MACAddr, 6);
             memcpy(answerFrameHeader.structData.dstMAC, parsedFrameHeader.structData.srcMAC, 6);

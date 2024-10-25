@@ -33,7 +33,8 @@ FSGP_Command_Frame* CommFIFO_GetData()
 
     if(buf_counter == 0)
     {
-        return &zeroPack;
+//        return &zeroPack;
+        return 0;
     }
 
     data = &command_buf[buf_rd_index++];

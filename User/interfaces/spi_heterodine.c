@@ -90,49 +90,48 @@ void SPIHET_Init()
 {
     FIFO_Init();
 
-    GPIO_InitTypeDef GPIO_InitStructure={0};
+//    GPIO_InitTypeDef GPIO_InitStructure={0};
     SPI_InitTypeDef SPI_InitStructure={0};
 
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_SPI3, ENABLE);
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_GPIOB | RCC_APB2Periph_GPIOC, ENABLE);
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);
 
-//    // SPI3_NSS
-//    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4;
-//    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
-//    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-//    GPIO_Init(GPIOA, &GPIO_InitStructure);
+    GPIO_PinRemapConfig(GPIO_Remap_SPI3, ENABLE);
 
     // SPI3_SCK
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10;
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_Init(GPIOC, &GPIO_InitStructure);
+//    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10;
+//    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+//    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+//    GPIO_Init(GPIOC, &GPIO_InitStructure);
 
     // SPI3_MOSI
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_12;
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_Init(GPIOC, &GPIO_InitStructure);
+//    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_12;
+//    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+//    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+//    GPIO_Init(GPIOC, &GPIO_InitStructure);
 
-    GPIO_PinRemapConfig(GPIO_Remap_SPI3, ENABLE);
 
     PIN_CSCh1.pin = GPIO_Pin_6;
     PIN_CSCh1.port = GPIOB;
-    GPIO_InitStructure.GPIO_Pin = PIN_CSCh1.pin;
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_Init(PIN_CSCh1.port, &GPIO_InitStructure);
+//    PIN_CSCh1.pin = GPIO_Pin_11;
+//    PIN_CSCh1.port = GPIOA;
+//    GPIO_InitStructure.GPIO_Pin = PIN_CSCh1.pin;
+//    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+//    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+//    GPIO_Init(PIN_CSCh1.port, &GPIO_InitStructure);
 
     PIN_CSCh2.pin = GPIO_Pin_7;
     PIN_CSCh2.port = GPIOB;
-    GPIO_InitStructure.GPIO_Pin = PIN_CSCh2.pin;
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_Init(PIN_CSCh2.port, &GPIO_InitStructure);
+//    PIN_CSCh2.pin = GPIO_Pin_12;
+//    PIN_CSCh2.port = GPIOA;
+//    GPIO_InitStructure.GPIO_Pin = PIN_CSCh2.pin;
+//    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+//    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+//    GPIO_Init(PIN_CSCh2.port, &GPIO_InitStructure);
 
-    GPIO_SetBits(PIN_CSCh1.port, PIN_CSCh1.pin);
-    GPIO_SetBits(PIN_CSCh2.port, PIN_CSCh2.pin);
+//    GPIO_SetBits(PIN_CSCh1.port, PIN_CSCh1.pin);
+//    GPIO_SetBits(PIN_CSCh2.port, PIN_CSCh2.pin);
 
     SPI_InitStructure.SPI_Direction = SPI_Direction_2Lines_FullDuplex;
     SPI_InitStructure.SPI_Mode = SPI_Mode_Master;
@@ -152,6 +151,62 @@ void SPIHET_Init()
     SPI_DMA_Init();
 }
 
+void SPIHET_LockPins()
+{
+    //SPI_Cmd(SPI3, ENABLE);
+
+    GPIO_InitTypeDef GPIO_InitStructure={0};
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+
+    // SPI3_SCK
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+    GPIO_Init(GPIOC, &GPIO_InitStructure);
+
+    // SPI3_MOSI
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_12;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+    GPIO_Init(GPIOC, &GPIO_InitStructure);
+
+    GPIO_InitStructure.GPIO_Pin = PIN_CSCh1.pin;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+    GPIO_Init(PIN_CSCh1.port, &GPIO_InitStructure);
+
+    GPIO_InitStructure.GPIO_Pin = PIN_CSCh2.pin;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+    GPIO_Init(PIN_CSCh2.port, &GPIO_InitStructure);
+
+    GPIO_SetBits(PIN_CSCh1.port, PIN_CSCh1.pin);
+    GPIO_SetBits(PIN_CSCh2.port, PIN_CSCh2.pin);
+}
+
+void SPIHET_UnlockPins()
+{
+    //SPI_Cmd(SPI3, DISABLE);
+
+    GPIO_InitTypeDef GPIO_InitStructure={0};
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+
+    // SPI3_SCK
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+    GPIO_Init(GPIOC, &GPIO_InitStructure);
+
+    // SPI3_MOSI
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_12;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+    GPIO_Init(GPIOC, &GPIO_InitStructure);
+
+    GPIO_InitStructure.GPIO_Pin = PIN_CSCh1.pin;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+    GPIO_Init(PIN_CSCh1.port, &GPIO_InitStructure);
+
+    GPIO_InitStructure.GPIO_Pin = PIN_CSCh2.pin;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+    GPIO_Init(PIN_CSCh2.port, &GPIO_InitStructure);
+
+}
+
 void SPIHET_ProcessSpiFifo()
 {
 
@@ -164,11 +219,14 @@ void SPIHET_ProcessSpiFifo()
     else
     {
         NVIC_DisableIRQ(SPI3_IRQn);
+        SPIHET_UnlockPins();
     }
 }
 
 void SPIHET_SendSpiData(SPIHET_SendData_t* data_ptr)
 {
+    SPIHET_LockPins();
+
     switch(data_ptr->channel)
     {
         case HET_CHANNEL1:
@@ -179,8 +237,8 @@ void SPIHET_SendSpiData(SPIHET_SendData_t* data_ptr)
         }
         case HET_CHANNEL2:
         {
-            GPIO_SetBits(PIN_CSCh1.port, PIN_CSCh1.pin);
             GPIO_ResetBits(PIN_CSCh2.port, PIN_CSCh2.pin);
+            GPIO_SetBits(PIN_CSCh1.port, PIN_CSCh1.pin);
             break;
         }
         default: return;

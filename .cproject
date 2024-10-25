@@ -94,6 +94,8 @@
 									<listOptionValue builtIn="false" value="m"/>
 									<listOptionValue builtIn="false" value="wchnet"/>
 								</option>
+								<option id="ilg.gnumcueclipse.managedbuild.cross.riscv.option.c.linker.useprintffloat.1339150950" superClass="ilg.gnumcueclipse.managedbuild.cross.riscv.option.c.linker.useprintffloat" useByScannerDiscovery="false" value="true" valueType="boolean"/>
+								<option id="ilg.gnumcueclipse.managedbuild.cross.riscv.option.c.linker.usescanffloat.1290677387" superClass="ilg.gnumcueclipse.managedbuild.cross.riscv.option.c.linker.usescanffloat" useByScannerDiscovery="false" value="true" valueType="boolean"/>
 								<inputType id="ilg.gnumcueclipse.managedbuild.cross.riscv.tool.c.linker.input.1859223768" superClass="ilg.gnumcueclipse.managedbuild.cross.riscv.tool.c.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
 									<additionalInput kind="additionalinput" paths="$(LIBS)"/>

@@ -23,6 +23,18 @@ void EXTI0_IRQHandler(void)  __attribute__((interrupt("WCH-Interrupt-fast")));
 bool ledState=0;
 uint8_t framesCounter = 0;
 
+// ----> to pilot_signal.h OR hum.h
+ControlPin_t pinHumSW;
+ControlPin_t pinHumOn;
+
+typedef enum
+{
+    PS_OFF = 0,
+    PS_SIN,
+    PS_HUM,
+    PS_LCM
+}PILOT_type_t;
+
 void PIN_Init()
 {
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_GPIOB |
@@ -37,16 +49,22 @@ void PIN_Init()
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
     GPIO_Init(GPIOA, &GPIO_InitStructure);
 
-    // Strobe
-//    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_14;
-//    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-//    GPIO_Init(GPIOA, &GPIO_InitStructure);
-
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2;
+    // HUM
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
-    GPIO_Init(GPIOC, &GPIO_InitStructure);
 
+    pinHumSW.pin = 14;
+    pinHumSW.port = GPIOD;
+
+    GPIO_InitStructure.GPIO_Pin = pinHumSW.pin;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+    GPIO_Init(pinHumSW.port, &GPIO_InitStructure);
+
+    pinHumOn.pin = 15;
+    pinHumOn.port = GPIOD;
+
+    GPIO_InitStructure.GPIO_Pin = pinHumOn.pin;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+    GPIO_Init(pinHumOn.port, &GPIO_InitStructure);
 }
 
 void INT_Init()
@@ -61,16 +79,7 @@ void INT_Init()
 
     EXTI_Init(&EXTI_InitStructure);
 
-//    GPIO_EXTILineConfig(GPIO_PortSourceGPIOA, GPIO_PinSource14); //PA14 - STROBE
-//    EXTI_InitStructure.EXTI_Line = EXTI_Line14;
-//    EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
-//    EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising;
-//    EXTI_InitStructure.EXTI_LineCmd = ENABLE;
-
-    EXTI_Init(&EXTI_InitStructure);
-
     NVIC_EnableIRQ(EXTI0_IRQn);
-//    NVIC_EnableIRQ(EXTI15_10_IRQn);
 }
 
 void TIM3_Init(void)
@@ -128,7 +137,7 @@ int main(void)
     NVIC_EnableIRQ(EXTI0_IRQn);
     NVIC_EnableIRQ(TIM3_IRQn);
 
-    //Delay_Ms(2000);
+    Delay_Ms(2000);
 
 	while(1)
     {
@@ -150,7 +159,6 @@ int main(void)
         {
             NVIC_DisableIRQ(TIM3_IRQn);
 
-            GPIO_SetBits(GPIOC, GPIO_Pin_3);
             RecievedFrameData recievedFrameDataSaved;
             memcpy(&recievedFrameDataSaved, &recievedFrameData, recievedFrameData.frameLength);
 
@@ -177,8 +185,6 @@ int main(void)
             }
             recievedFrameData.frameLength = 0;
             NVIC_EnableIRQ(TIM3_IRQn);
-
-            GPIO_ResetBits(GPIOC, GPIO_Pin_3);
         }
 	}
 }
@@ -193,21 +199,31 @@ void TIM3_IRQHandler()
 
 void EXTI0_IRQHandler(void)
 {
-    //GPIOC->BSHR = GPIO_Pin_2;
-
     FSGP_Command_Frame* actualComm = CommFIFO_GetData();
 
-    LFM_SetPack(actualComm->KP);
+    if(actualComm)
+    {
+        LFM_SetPack(actualComm->KP);
 
-    HET_UpdateIO();
+        HET_UpdateIO();
 
-    HET_SetFilters(actualComm->NKCH);
+        HET_SetFilters(actualComm->NKCH);
 
-    flagSetHeterodine = 1;
+        flagSetHeterodine = 1;
 
-    //GPIOC->BCR = GPIO_Pin_2;
+        if(actualComm->TipPS == PS_HUM)
+        {
+            GPIO_SetBits(pinHumOn.port, pinHumOn.pin);
+            GPIO_SetBits(pinHumSW.port, pinHumSW.pin);
+        }
+        else
+        {
+            GPIO_ResetBits(pinHumOn.port, pinHumOn.pin);
+            GPIO_ResetBits(pinHumSW.port, pinHumSW.pin);
+        }
+    }
 
-   // printf("used nk4:%d\r\n", actualComm->NKCH);
+//    printf("used nk4:%d\r\n", actualComm->NKCH);
 
     EXTI_ClearITPendingBit(EXTI_Line0);
 }
