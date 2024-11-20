@@ -27,6 +27,9 @@ uint8_t framesCounter = 0;
 ControlPin_t pinHumSW;
 ControlPin_t pinHumOn;
 
+ControlPin_t pinVC1;
+ControlPin_t pinVC2;
+
 typedef enum
 {
     PS_OFF = 0,
@@ -52,19 +55,34 @@ void PIN_Init()
     // HUM
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 
-    pinHumSW.pin = 14;
+    pinHumSW.pin = GPIO_Pin_1;
     pinHumSW.port = GPIOD;
 
     GPIO_InitStructure.GPIO_Pin = pinHumSW.pin;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
     GPIO_Init(pinHumSW.port, &GPIO_InitStructure);
 
-    pinHumOn.pin = 15;
+    pinHumOn.pin = GPIO_Pin_2;
     pinHumOn.port = GPIOD;
 
     GPIO_InitStructure.GPIO_Pin = pinHumOn.pin;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
     GPIO_Init(pinHumOn.port, &GPIO_InitStructure);
+
+    // VC
+    pinVC1.pin = GPIO_Pin_3;
+    pinVC1.port = GPIOD;
+
+    GPIO_InitStructure.GPIO_Pin = pinVC1.pin;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+    GPIO_Init(pinVC1.port, &GPIO_InitStructure);
+
+    pinVC2.pin = GPIO_Pin_4;
+    pinVC2.port = GPIOD;
+
+    GPIO_InitStructure.GPIO_Pin = pinVC2.pin;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+    GPIO_Init(pinVC2.port, &GPIO_InitStructure);
 }
 
 void INT_Init()
@@ -197,9 +215,29 @@ void TIM3_IRQHandler()
     TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
 }
 
+bool toogle = 0;
 void EXTI0_IRQHandler(void)
 {
     FSGP_Command_Frame* actualComm = CommFIFO_GetData();
+
+    toogle = !toogle;
+    printf("toogle %d", toogle);
+
+    if(toogle)
+    {
+        GPIO_SetBits(pinVC1.port, pinVC1.pin);
+        GPIO_SetBits(pinVC2.port, pinVC2.pin);
+
+        GPIO_SetBits(pinHumOn.port, pinHumOn.pin);
+        GPIO_SetBits(pinHumSW.port, pinHumSW.pin);
+    }
+    else {
+        GPIO_ResetBits(pinVC1.port, pinVC1.pin);
+        GPIO_ResetBits(pinVC2.port, pinVC2.pin);
+
+        GPIO_ResetBits(pinHumOn.port, pinHumOn.pin);
+        GPIO_ResetBits(pinHumSW.port, pinHumSW.pin);
+    }
 
     if(actualComm)
     {
@@ -208,6 +246,23 @@ void EXTI0_IRQHandler(void)
         HET_UpdateIO();
 
         HET_SetFilters(actualComm->NKCH);
+
+        // зг3здзв03
+        if(actualComm->NKCH < 36)
+        {
+            GPIO_SetBits(pinVC1.port, pinVC1.pin);
+            GPIO_SetBits(pinVC2.port, pinVC2.pin);
+        }
+        else if(actualComm->NKCH >= 36 && actualComm->NKCH < 51)
+        {
+            GPIO_ResetBits(pinVC1.port, pinVC1.pin);
+            GPIO_SetBits(pinVC2.port, pinVC2.pin);
+        }
+        else
+        {
+            GPIO_ResetBits(pinVC1.port, pinVC1.pin);
+            GPIO_ResetBits(pinVC2.port, pinVC2.pin);
+        }
 
         flagSetHeterodine = 1;
 

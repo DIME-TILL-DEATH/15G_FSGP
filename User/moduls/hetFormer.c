@@ -120,7 +120,7 @@ void HET_Init()
                 hetData[i].FTW0_Ch1[0], hetData[i].FTW0_Ch1[1], hetData[i].FTW0_Ch1[2],
                 hetData[i].FTW0_Ch1[3], hetData[i].FTW0_Ch1[4], hetData[i].FTW0_Ch1[5]);
 
-        amplWord1[i] = 0x0200;
+        amplWord1[i] = 0x3FF; //1023
         hetData[i].amplitudeCorrectionCh1[0] = (amplWord1[i]>>8) & 0xFF;
         hetData[i].amplitudeCorrectionCh1[1] = (amplWord1[i]>>0) & 0xFF;
 
