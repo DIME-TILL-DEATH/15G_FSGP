@@ -55,7 +55,7 @@ void PIN_Init()
     // HUM
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 
-    pinHumSW.pin = GPIO_Pin_1;
+    pinHumSW.pin = GPIO_Pin_1; // FIlter pi actual!!!!
     pinHumSW.port = GPIOD;
 
     GPIO_InitStructure.GPIO_Pin = pinHumSW.pin;
@@ -215,29 +215,10 @@ void TIM3_IRQHandler()
     TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
 }
 
-bool toogle = 0;
+//bool toogle = 0;
 void EXTI0_IRQHandler(void)
 {
     FSGP_Command_Frame* actualComm = CommFIFO_GetData();
-
-    toogle = !toogle;
-    printf("toogle %d", toogle);
-
-    if(toogle)
-    {
-        GPIO_SetBits(pinVC1.port, pinVC1.pin);
-        GPIO_SetBits(pinVC2.port, pinVC2.pin);
-
-        GPIO_SetBits(pinHumOn.port, pinHumOn.pin);
-        GPIO_SetBits(pinHumSW.port, pinHumSW.pin);
-    }
-    else {
-        GPIO_ResetBits(pinVC1.port, pinVC1.pin);
-        GPIO_ResetBits(pinVC2.port, pinVC2.pin);
-
-        GPIO_ResetBits(pinHumOn.port, pinHumOn.pin);
-        GPIO_ResetBits(pinHumSW.port, pinHumSW.pin);
-    }
 
     if(actualComm)
     {
@@ -246,7 +227,7 @@ void EXTI0_IRQHandler(void)
         HET_UpdateIO();
 
         HET_SetFilters(actualComm->NKCH);
-
+/*
         // зг3здзв03
         if(actualComm->NKCH < 36)
         {
@@ -276,6 +257,7 @@ void EXTI0_IRQHandler(void)
             GPIO_ResetBits(pinHumOn.port, pinHumOn.pin);
             GPIO_ResetBits(pinHumSW.port, pinHumSW.pin);
         }
+        */
     }
 
 //    printf("used nk4:%d\r\n", actualComm->NKCH);
