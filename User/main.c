@@ -26,6 +26,8 @@ uint8_t framesCounter = 0;
 // ----> to pilot_signal.h OR hum.h
 ControlPin_t pinHumSW;
 ControlPin_t pinHumOn;
+ControlPin_t pinVgNeg1;
+ControlPin_t pinVgNeg2;
 
 ControlPin_t pinVC1;
 ControlPin_t pinVC2;
@@ -83,6 +85,20 @@ void PIN_Init()
     GPIO_InitStructure.GPIO_Pin = pinVC2.pin;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
     GPIO_Init(pinVC2.port, &GPIO_InitStructure);
+
+    pinVgNeg1.pin = GPIO_Pin_3;
+    pinVgNeg1.port = GPIOB;
+
+    GPIO_InitStructure.GPIO_Pin = pinVgNeg1.pin;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+    GPIO_Init(pinVgNeg1.port, &GPIO_InitStructure);
+
+    pinVgNeg2.pin = GPIO_Pin_4;
+    pinVgNeg2.port = GPIOB;
+
+    GPIO_InitStructure.GPIO_Pin = pinVgNeg2.pin;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+    GPIO_Init(pinVgNeg2.port, &GPIO_InitStructure);
 }
 
 void INT_Init()
@@ -225,9 +241,10 @@ void EXTI0_IRQHandler(void)
         LFM_SetPack(actualComm->KP);
 
         HET_UpdateIO();
+        flagSetHeterodine = 1;
 
         HET_SetFilters(actualComm->NKCH);
-/*
+
         // зг3здзв03
         if(actualComm->NKCH < 36)
         {
@@ -241,23 +258,47 @@ void EXTI0_IRQHandler(void)
         }
         else
         {
-            GPIO_ResetBits(pinVC1.port, pinVC1.pin);
+            GPIO_SetBits(pinVC1.port, pinVC1.pin);
             GPIO_ResetBits(pinVC2.port, pinVC2.pin);
         }
 
-        flagSetHeterodine = 1;
 
-        if(actualComm->TipPS == PS_HUM)
+
+        switch(actualComm->TipPS)
         {
-            GPIO_SetBits(pinHumOn.port, pinHumOn.pin);
-            GPIO_SetBits(pinHumSW.port, pinHumSW.pin);
-        }
-        else
+        case PS_OFF:
         {
             GPIO_ResetBits(pinHumOn.port, pinHumOn.pin);
             GPIO_ResetBits(pinHumSW.port, pinHumSW.pin);
+            GPIO_ResetBits(pinVgNeg1.port, pinVgNeg1.pin);
+            GPIO_SetBits(pinVgNeg2.port, pinVgNeg2.pin);
+            break;
         }
-        */
+        case PS_SIN:
+        {
+            GPIO_ResetBits(pinHumOn.port, pinHumOn.pin);
+            GPIO_ResetBits(pinHumSW.port, pinHumSW.pin);
+            GPIO_SetBits(pinVgNeg1.port, pinVgNeg1.pin);
+            GPIO_ResetBits(pinVgNeg2.port, pinVgNeg2.pin);
+            break;
+        }
+        case PS_HUM:
+        {
+            GPIO_SetBits(pinHumOn.port, pinHumOn.pin);
+            GPIO_SetBits(pinHumSW.port, pinHumSW.pin);
+            GPIO_SetBits(pinVgNeg1.port, pinVgNeg1.pin);
+            GPIO_ResetBits(pinVgNeg2.port, pinVgNeg2.pin);
+            break;
+        }
+        case PS_LCM:
+        {
+            GPIO_ResetBits(pinHumOn.port, pinHumOn.pin);
+            GPIO_ResetBits(pinHumSW.port, pinHumSW.pin);
+            GPIO_SetBits(pinVgNeg1.port, pinVgNeg1.pin);
+            GPIO_ResetBits(pinVgNeg2.port, pinVgNeg2.pin);
+            break;
+        }
+        }
     }
 
 //    printf("used nk4:%d\r\n", actualComm->NKCH);

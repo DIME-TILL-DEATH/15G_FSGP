@@ -41,36 +41,32 @@ void HET_Init()
         pin_num = pin_num<<1;
     }
 
-    pinLatchTr[0].pin = GPIO_Pin_6;
-    pinLatchTr[0].port = GPIOB;
-    GPIO_InitStructure.GPIO_Pin = pinLatchTr[0].pin;
-    GPIO_Init(pinFilter[0].port, &GPIO_InitStructure);
+//    pinLatchTr[0].pin = GPIO_Pin_6;
+//    pinLatchTr[0].port = GPIOB;
+//    GPIO_InitStructure.GPIO_Pin = pinLatchTr[0].pin;
+//    GPIO_Init(pinFilter[0].port, &GPIO_InitStructure);
+//
+//    pinLatchTr[1].pin = GPIO_Pin_5;
+//    pinLatchTr[1].port = GPIOB;
+//    GPIO_InitStructure.GPIO_Pin = pinLatchTr[1].pin;
+//    GPIO_Init(pinFilter[1].port, &GPIO_InitStructure);
+//
+//    pinLatchTr[2].pin = GPIO_Pin_4;
+//    pinLatchTr[2].port = GPIOB;
+//    GPIO_InitStructure.GPIO_Pin = pinLatchTr[2].pin;
+//    GPIO_Init(pinFilter[2].port, &GPIO_InitStructure);
+//
+//    pinLatchTr[3].pin = GPIO_Pin_3;
+//    pinLatchTr[3].port = GPIOB;
+//    GPIO_InitStructure.GPIO_Pin = pinLatchTr[3].pin;
+//    GPIO_Init(pinFilter[3].port, &GPIO_InitStructure);
 
-    pinLatchTr[1].pin = GPIO_Pin_5;
-    pinLatchTr[1].port = GPIOB;
-    GPIO_InitStructure.GPIO_Pin = pinLatchTr[1].pin;
-    GPIO_Init(pinFilter[1].port, &GPIO_InitStructure);
-
-    pinLatchTr[2].pin = GPIO_Pin_4;
-    pinLatchTr[2].port = GPIOB;
-    GPIO_InitStructure.GPIO_Pin = pinLatchTr[2].pin;
-    GPIO_Init(pinFilter[2].port, &GPIO_InitStructure);
-
-    pinLatchTr[3].pin = GPIO_Pin_3;
-    pinLatchTr[3].port = GPIOB;
-    GPIO_InitStructure.GPIO_Pin = pinLatchTr[3].pin;
-    GPIO_Init(pinFilter[3].port, &GPIO_InitStructure);
-
-//    pinFilter[0].pin = GPIO_Pin_8;
-//    pinFilter[0].port = GPIOC;
-    pinFilter[0].pin = GPIO_Pin_0;
+    pinFilter[0].pin = GPIO_Pin_5;
     pinFilter[0].port = GPIOD;
     GPIO_InitStructure.GPIO_Pin = pinFilter[0].pin;
     GPIO_Init(pinFilter[0].port, &GPIO_InitStructure);
-//
-//    pinFilter[1].pin = GPIO_Pin_9;
-//    pinFilter[1].port = GPIOC;
-    pinFilter[1].pin = GPIO_Pin_1;
+
+    pinFilter[1].pin = GPIO_Pin_6;
     pinFilter[1].port = GPIOD;
     GPIO_InitStructure.GPIO_Pin = pinFilter[1].pin;
     GPIO_Init(pinFilter[1].port, &GPIO_InitStructure);
@@ -236,6 +232,7 @@ void HET_SetFilters(uint8_t freqNum)
         return;
     }
 
+    //for(uint8_t i=0; i<FILTER_COUNT; i++)
     for(uint8_t i=0; i<FILTER_COUNT; i++)
     {
         GPIO_WriteBit(pinFilter[i].port, pinFilter[i].pin, hetData[freqNum].filterState[i]);
