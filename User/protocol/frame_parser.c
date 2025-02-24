@@ -35,7 +35,11 @@ void parseFrame(const uint8_t* inData, uint32_t inDataLen, uint8_t* outData, uin
                 HET_SetHeterodine(recieved_command.NKCH);
             }
 
-            if(CommFIFO_PutData(recieved_command))
+            FSGP_Command_Data commData;
+            commData.ddsData = LFM_CalcPackData(packData[recieved_command.KP], recieved_command.NLCHM, 0, 0);
+            commData.rcvdFrame = recieved_command;
+
+            if(CommFIFO_PutData(commData))
             {
                 memcpy(outData, inData, inDataLen);
 

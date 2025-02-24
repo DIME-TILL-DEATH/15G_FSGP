@@ -112,9 +112,9 @@ void HET_Init()
         hetData[i].FTW0_Ch1[4] = (ftw0_ch1>>8) & 0xFF;
         hetData[i].FTW0_Ch1[5] = (ftw0_ch1>>0) & 0xFF;
 
-        printf("Het1 FTW0:%x%x%x%x%x%x\r\n",
-                hetData[i].FTW0_Ch1[0], hetData[i].FTW0_Ch1[1], hetData[i].FTW0_Ch1[2],
-                hetData[i].FTW0_Ch1[3], hetData[i].FTW0_Ch1[4], hetData[i].FTW0_Ch1[5]);
+//        printf("Het1 FTW0:%x%x%x%x%x%x\r\n",
+//                hetData[i].FTW0_Ch1[0], hetData[i].FTW0_Ch1[1], hetData[i].FTW0_Ch1[2],
+//                hetData[i].FTW0_Ch1[3], hetData[i].FTW0_Ch1[4], hetData[i].FTW0_Ch1[5]);
 
         amplWord1[i] = 0x3FF; //1023
         hetData[i].amplitudeCorrectionCh1[0] = (amplWord1[i]>>8) & 0xFF;
@@ -130,9 +130,9 @@ void HET_Init()
         hetData[i].FTW0_Ch2[4] = (ftw0_ch2>>8) & 0xFF;
         hetData[i].FTW0_Ch2[5] = (ftw0_ch2>>0) & 0xFF;
 
-        printf("Het2 FTW0:%x%x%x%x%x%x\r\n\r\n",
-                        hetData[i].FTW0_Ch2[0], hetData[i].FTW0_Ch2[1], hetData[i].FTW0_Ch2[2],
-                        hetData[i].FTW0_Ch2[3], hetData[i].FTW0_Ch2[4], hetData[i].FTW0_Ch2[5]);
+//        printf("Het2 FTW0:%x%x%x%x%x%x\r\n\r\n",
+//                        hetData[i].FTW0_Ch2[0], hetData[i].FTW0_Ch2[1], hetData[i].FTW0_Ch2[2],
+//                        hetData[i].FTW0_Ch2[3], hetData[i].FTW0_Ch2[4], hetData[i].FTW0_Ch2[5]);
 
 //        amplWord2[i] = 0x0200;
         hetData[i].amplitudeCorrectionCh2[0] = (amplWord2[i]>>8) & 0xFF;

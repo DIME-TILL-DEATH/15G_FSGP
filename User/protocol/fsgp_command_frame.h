@@ -99,38 +99,51 @@ typedef struct
 typedef struct
 {
     // word 16, [31:24], offset 0x6a
-   uint8_t reserved1  :6;
-   uint8_t SBR_OCH    :1;     //СБР ОЧ
-   uint8_t REG        :1;     //РЕГ
+   uint8_t RVCH         :2;       //РВЧ
+   uint8_t reserved1    :3;
+   uint8_t PTVRS        :1;     // ПТВРС
+   uint8_t SBR_OCH      :1;     //СБР ОЧ
+   uint8_t REG          :1;     //РЕГ
 
    // word 16, [23:16], offset 0x6b
-   uint8_t NKCH       :8;     //НКЧ
+   uint8_t NKCH         :8;     //НКЧ
 
    // word 16, [15:8]
-   uint8_t NPO        :4;     //НПО
-   uint8_t reserved2  :4;
+   uint8_t NPO          :4;     //НПО
+   uint8_t NVt          :1;     //НВТ
+   uint8_t reserved2    :3;
 
    // word 16, [7:0]
-   uint8_t KP         :8;     // Код пачки
+   uint8_t KP           :8;     // КП - Код пачки
 
    // word 17, [31:24]
-   uint8_t reserved3  :8;
+   uint8_t MAKC         :8;     //МАКЦ
 
    // word 17, [23:16]
-   uint8_t ZI         :4;     //ЗИ
-   uint8_t reserved4  :4;
+   uint8_t IZL          :1;     //ИЗЛ
+   uint8_t SZIZL        :1;     //СИЗЛ
+   uint8_t FZI          :1;     //ФЗИ
+   uint8_t reserved3    :1;
+   uint8_t ComPCH       :1;     //Ком ПЧ
+   uint8_t PRKF         :1;     //ПРКФ
+   uint8_t ComPS        :1;     //Ком ПС
+   uint8_t reserved4    :1;
 
    // word 17, [15:8]
-   uint8_t reserved5  :8;
+   uint8_t MO           :1;     //МО
+   uint8_t PG           :1;     //ПГ
+   uint8_t CHPK         :1;     //ЧПК
+   uint8_t reserved5    :5;
 
    // word 17, [7:0]
-   uint8_t PS         :1;     //ПС
-   uint8_t CDO        :1;     //ЦДО
-   uint8_t PBL        :1;     //ПБЛ
-   uint8_t PF         :1;     //ПФ
-   uint8_t AKP        :1;     //АКП
-   uint8_t EKV        :1;     //ЭКВ
-   uint8_t reserved6  :2;
+   uint8_t PS           :1;     //ПС
+   uint8_t CDO          :1;     //ЦДО
+   uint8_t PBL          :1;     //ПБЛ
+   uint8_t PF           :1;     //ПФ
+   uint8_t AKP          :1;     //АКП
+   uint8_t EKV          :1;     //ЭКВ
+   uint8_t NLCHM        :1;     //НЛЧМ
+   uint8_t ADAP         :1;     //АДАП
 
    //word 18, [31:24]
    uint8_t reserved7;
@@ -147,10 +160,10 @@ typedef struct
    uint8_t SkVRASH      :3; //СкВРАЩ
    uint8_t reserved10   :3;
 
-   //word 19, [32:0]
+   //word 19, [31:0]
    uint32_t DVRS;  //Длительность ВРС
 
-   //word 20, [32:16]
+   //word 20, [31:16]
    uint16_t DalnostPS;  //Дальность ПС
 
    //word 20, [16:8]
@@ -162,8 +175,13 @@ typedef struct
    uint8_t PnfPS        :1; //ПНФ ПС
    uint8_t reserved11   :1;
 
-   //word 21, [32:16]
-   uint16_t reserved12;
+   //word 21, [31:24]
+   uint8_t reserved12;
+
+   //word 21, [23:16]
+   uint8_t reserved13   :4;
+   uint8_t PNF_ZI       :1; //ПНФ ЗИ
+   uint8_t PolosaZI     :3; //Полоса ЗИ
 
    //word 21, [15:0]
    uint16_t SkorostPS;  //Скорость ПС
@@ -188,7 +206,8 @@ typedef struct
    uint32_t TVRS;  //Тврс
 
    //word 34, [32:0]
-   uint32_t TNO;  //Текущий номер обзора
+   uint16_t TNSO;  //Текущий номер скана в обзоре
+   uint16_t TNO;  //Текущий номер обзора
 
     //word 35, [32:0]
     uint32_t azimutUPR;
@@ -206,7 +225,7 @@ typedef struct
     uint32_t Tev31_0;
 
     //word 40, [32:0]
-    uint32_t dAzimut;
+    uint32_t TNS;
 
    //word 41, [32:0]
    uint32_t timestamp_hw;
@@ -216,6 +235,8 @@ typedef struct
 
    //word 43, [32:0]
    uint32_t timestamp_lw;
+
+   uint32_t reservedEnd[4];
 }FSGP_Command_Frame;
 
 #endif /* USER_PROTOCOL_FSGP_COMMAND_FRAME_H_ */

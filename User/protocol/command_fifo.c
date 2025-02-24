@@ -1,8 +1,8 @@
 #include "command_fifo.h"
 
 uint8_t buf_wr_index, buf_rd_index, buf_counter;
-FSGP_Command_Frame command_buf[COMMAND_FIFO_SIZE];
-FSGP_Command_Frame zeroPack = {0};
+FSGP_Command_Data command_buf[COMMAND_FIFO_SIZE];
+FSGP_Command_Data zeroPack = {0};
 
 void CommFIFO_Init()
 {
@@ -10,10 +10,10 @@ void CommFIFO_Init()
     buf_rd_index = 0;
     buf_counter = 0;
 
-    zeroPack.NKCH = 3;
+    zeroPack.rcvdFrame.NKCH = 3;
 }
 
-bool CommFIFO_PutData(FSGP_Command_Frame new_data)
+bool CommFIFO_PutData(FSGP_Command_Data new_data)
 {
     if(buf_counter < COMMAND_FIFO_SIZE)
     {
@@ -27,9 +27,9 @@ bool CommFIFO_PutData(FSGP_Command_Frame new_data)
     else return false;
 }
 
-FSGP_Command_Frame* CommFIFO_GetData()
+FSGP_Command_Data* CommFIFO_GetData()
 {
-    FSGP_Command_Frame* data;
+    FSGP_Command_Data* data;
 
     if(buf_counter == 0)
     {
@@ -46,7 +46,7 @@ FSGP_Command_Frame* CommFIFO_GetData()
     return data;
 }
 
-FSGP_Command_Frame CommFIFO_PeekData()
+FSGP_Command_Data CommFIFO_PeekData()
 {
     return command_buf[buf_rd_index];
 }

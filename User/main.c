@@ -185,7 +185,7 @@ int main(void)
 
         if(flagSetHeterodine && CommFIFO_Count()>0)
         {
-            HET_SetHeterodine(CommFIFO_PeekData().NKCH);
+            HET_SetHeterodine(CommFIFO_PeekData().rcvdFrame.NKCH);
             flagSetHeterodine = 0;
         }
 
@@ -234,24 +234,24 @@ void TIM3_IRQHandler()
 //bool toogle = 0;
 void EXTI0_IRQHandler(void)
 {
-    FSGP_Command_Frame* actualComm = CommFIFO_GetData();
+    FSGP_Command_Data* actualComm = CommFIFO_GetData();
 
     if(actualComm)
     {
-        LFM_SetPack(actualComm->KP);
+        LFM_SetPack(&actualComm->ddsData);
 
         HET_UpdateIO();
         flagSetHeterodine = 1;
 
-        HET_SetFilters(actualComm->NKCH);
+        HET_SetFilters(actualComm->rcvdFrame.NKCH);
 
         // зг3здзв03
-        if(actualComm->NKCH < 36)
+        if(actualComm->rcvdFrame.NKCH < 36)
         {
             GPIO_SetBits(pinVC1.port, pinVC1.pin);
             GPIO_SetBits(pinVC2.port, pinVC2.pin);
         }
-        else if(actualComm->NKCH >= 36 && actualComm->NKCH < 51)
+        else if(actualComm->rcvdFrame.NKCH >= 36 && actualComm->rcvdFrame.NKCH < 51)
         {
             GPIO_ResetBits(pinVC1.port, pinVC1.pin);
             GPIO_SetBits(pinVC2.port, pinVC2.pin);
@@ -262,9 +262,7 @@ void EXTI0_IRQHandler(void)
             GPIO_ResetBits(pinVC2.port, pinVC2.pin);
         }
 
-
-
-        switch(actualComm->TipPS)
+        switch(actualComm->rcvdFrame.TipPS)
         {
         case PS_OFF:
         {
