@@ -1,6 +1,8 @@
 #ifndef USER_INTERFACES_ETHERNET_H_
 #define USER_INTERFACES_ETHERNET_H_
 
+#include <stdbool.h>
+
 #include "ch32v30x.h"
 
 #include "eth_driver.h"
@@ -139,12 +141,14 @@ typedef union
     uint8_t rawData[ICMP_FULL_HEADER_SIZE];
 }ICMPFrame;
 
-extern uint8_t framesCounter;
+extern uint16_t ackFramesCounter;
+extern bool isRecievingControlFrames;
 
 void ETHERNET_ParseUdpFrame(const RecievedFrameData* frame);
 void ETHERNET_ParseIcmpFrame(const RecievedFrameData* frame);
 void ETHERNET_ParseArpFrame(const RecievedFrameData* frame);
 void ETHERNET_SendFdkFrame();
+void ETHERNET_SendRdyFrame();
 
 void ETHERNET_Init();
 void ETHERNET_HandleGlobalInt();

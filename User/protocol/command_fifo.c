@@ -4,6 +4,8 @@ uint8_t buf_wr_index, buf_rd_index, buf_counter;
 FSGP_Command_Data command_buf[COMMAND_FIFO_SIZE];
 FSGP_Command_Data zeroPack = {0};
 
+FSGP_Command_Data* actualComm;
+
 void CommFIFO_Init()
 {
     buf_wr_index = 0;
@@ -44,6 +46,16 @@ FSGP_Command_Data* CommFIFO_GetData()
     buf_counter--;
 
     return data;
+}
+
+FSGP_Command_Data CommFIFO_LastData()
+{
+    uint8_t tmpIndex;
+
+    if(buf_wr_index == 0) tmpIndex = COMMAND_FIFO_SIZE-1;
+    else tmpIndex = buf_wr_index - 1;
+
+    return command_buf[tmpIndex];
 }
 
 FSGP_Command_Data CommFIFO_PeekData()

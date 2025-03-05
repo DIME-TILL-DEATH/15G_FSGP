@@ -19,9 +19,10 @@
 #include "frame_parser.h"
 
 void EXTI0_IRQHandler(void)  __attribute__((interrupt("WCH-Interrupt-fast")));
+void TIM2_IRQHandler(void)  __attribute__((interrupt(/*"WCH-Interrupt-fast"*/)));
+void TIM3_IRQHandler(void)  __attribute__((interrupt(/*"WCH-Interrupt-fast"*/)));
 
 bool ledState=0;
-uint8_t framesCounter = 0;
 
 // ----> to pilot_signal.h OR hum.h
 ControlPin_t pinHumSW;
@@ -122,10 +123,11 @@ void TIM3_Init(void)
 
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
 
-    TIM_TimeBaseStructure.TIM_Period = SystemCoreClock;
-    TIM_TimeBaseStructure.TIM_Prescaler = 10000; //2880;
-    TIM_TimeBaseStructure.TIM_ClockDivision = 0;
+    TIM_TimeBaseStructure.TIM_Period = 10 * SystemCoreClock / 1000000 - 1;
+    TIM_TimeBaseStructure.TIM_Prescaler = 10000 - 1;
+    TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV4;
     TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+//    TIM_TimeBaseStructure.TIM_RepetitionCounter = 1000;
     TIM_TimeBaseInit(TIM3, &TIM_TimeBaseStructure);
     TIM_ITConfig(TIM3, TIM_IT_Update, ENABLE);
 
@@ -133,7 +135,7 @@ void TIM3_Init(void)
     TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
 }
 
-bool flagSendFdk = 0;
+volatile bool flagSendFdk = 0;
 bool flagSetHeterodine = 0;
 int main(void)
 {
@@ -145,7 +147,7 @@ int main(void)
     printf("SystemClk: %d\r\n",SystemCoreClock);
     printf("ChipID: %08x\r\n", DBGMCU_GetCHIPID());
 
-    Delay_Ms(1000);
+    Delay_Ms(2500);
 
 	CommFIFO_Init();
 
@@ -180,6 +182,8 @@ int main(void)
         if(flagSendFdk)
         {
             ETHERNET_SendFdkFrame();
+            ETHERNET_SendRdyFrame();
+            isRecievingControlFrames = 0;
             flagSendFdk = 0;
         }
 
@@ -191,8 +195,9 @@ int main(void)
 
         if(recievedFrameData.frameLength>0)
         {
-            NVIC_DisableIRQ(TIM3_IRQn);
+//            printf("Recieved frame length: %d\r\n", recievedFrameData.frameLength);
 
+            // TODO §á§â§Ú §á§Ý§à§ä§ß§à§Þ §á§à§ä§à§Ü§Ö §Õ§Ö§ã§Ü§â§Ú§á§ä§à§â, §Ó§Ú§Õ§Ú§Þ§à, §á§Ú§ê§Ö§ä §Ó §ä§à§ä §Ò§å§æ§Ö§â §Ü§à§ä§à§â§í§Û §à§Ò§â§Ñ§Ò§Ñ§ä§í§Ó§Ñ§Ö§ä§ã§ñ
             RecievedFrameData recievedFrameDataSaved;
             memcpy(&recievedFrameDataSaved, &recievedFrameData, recievedFrameData.frameLength);
 
@@ -218,23 +223,26 @@ int main(void)
                 }
             }
             recievedFrameData.frameLength = 0;
-            NVIC_EnableIRQ(TIM3_IRQn);
         }
 	}
 }
 
 // IRQ handlers ======================
+uint8_t repCounter = 0;
 void TIM3_IRQHandler()
 {
-    flagSendFdk = 1;
-
     TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
+
+    repCounter++;
+    if(repCounter == 50){
+        flagSendFdk = 1;
+        repCounter = 0;
+    }
 }
 
-//bool toogle = 0;
 void EXTI0_IRQHandler(void)
 {
-    FSGP_Command_Data* actualComm = CommFIFO_GetData();
+    actualComm = CommFIFO_GetData();
 
     if(actualComm)
     {

@@ -228,7 +228,7 @@ void HET_SetFilters(uint8_t freqNum)
     freqNum -=1;
     if(freqNum > FREQ_COUNT)
     {
-        printf("Set filters: incorrect NKCH: %d", freqNum++);
+//        printf("Set filters: incorrect NKCH: %d", freqNum++);
         return;
     }
 

@@ -16,10 +16,14 @@ typedef struct{
 void CommFIFO_Init();
 
 bool CommFIFO_PutData(FSGP_Command_Data new_data);
+FSGP_Command_Data CommFIFO_LastData();
+
 // Fast get and permanently delete next data
 FSGP_Command_Data* CommFIFO_GetData();
 // view next data
 FSGP_Command_Data CommFIFO_PeekData();
+
+extern FSGP_Command_Data* actualComm; // last apllied data
 
 void CommFIFO_Clear();
 

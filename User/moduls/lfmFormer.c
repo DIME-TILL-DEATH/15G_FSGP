@@ -3,7 +3,7 @@
 #include "lfm_fifo.h"
 
 #define STAGE1_LENGTH 0 * 24
-#define STAGE2_LENGTH 4 * 24
+#define STAGE2_LENGTH 6 * 24 //4 * 24
 
 GPIO_TypeDef* DATA_PORT;
 ControlPin_t PIN_CS, PIN_ADR, PIN_WR, PIN_RD;
@@ -1091,6 +1091,8 @@ void LFM_WriteStartupData()
 {
     PIN_CS.port->BCR = PIN_CS.pin;
 
+    // §³§Ò§â§à§ã §æ§Ñ§Ù§í §á§â§Ú §Ü§Ñ§Ø§Õ§à§Þ §Ú§Þ§á§å§Ý§î§ã§Ö
+    // §ã§ä§Ñ§â§ä§à§Ó§í§Û §Ú§ß§ä§Ö§â§Ó§Ñ§Ý §Ò§í§Ý 96, §ã§ä§Ñ§Ý 144
     LFM_WriteReg(DDS1508_ADDR_SWRST, 0x0078);
     LFM_WriteReg(DDS1508_ADDR_CTR, 0x1000);
     LFM_WriteReg(DDS1508_ADDR_SYNC, 0x4182);
@@ -1106,6 +1108,16 @@ void LFM_WriteStartupData()
     LFM_WriteReg(DDS1508_ADDR_CH1_dF_M, ddsData.deltaF[1]);
     LFM_WriteReg(DDS1508_ADDR_CH1_dF_L, ddsData.deltaF[0]);
 
+    uint64_t tph1 = DDS1508_CalcTWord(STAGE1_LENGTH);
+    ddsData.tph1[0] = (tph1 & 0xFFFF);
+    ddsData.tph1[1] = (tph1 & 0xFFFF0000) >> 16;
+    ddsData.tph1[2] = (tph1 & 0xFFFF00000000) >> 32;
+
+    uint64_t tph2 = DDS1508_CalcTWord(STAGE2_LENGTH);
+    ddsData.tph2[0] = (tph2 & 0xFFFF);
+    ddsData.tph2[1] = (tph2 & 0xFFFF0000) >> 16;
+    ddsData.tph2[2] = (tph2 & 0xFFFF00000000) >> 32;
+
     LFM_WriteReg(DDS1508_ADDR_CH1_TPH1_L, ddsData.tph1[0]);
     LFM_WriteReg(DDS1508_ADDR_CH1_TPH2_L, ddsData.tph2[0]);
 
@@ -1113,7 +1125,7 @@ void LFM_WriteStartupData()
     LFM_WriteReg(DDS1508_ADDR_CH1_TPH4_L, ddsData.tph4[0]);
 
     LFM_WriteReg(DDS1508_ADDR_CLR, 0x003F);
-    LFM_WriteReg(DDS1508_ADDR_CH1_LS_CTR, 0xBC10);
+    LFM_WriteReg(DDS1508_ADDR_CH1_LS_CTR, 0xBC10); //BC10);
 
     PIN_CS.port->BSHR = PIN_CS.pin;
 }
@@ -1121,7 +1133,8 @@ void LFM_WriteStartupData()
 void LFM_SetPack(DdsRegisterData_t* ddsData)
 {
     PIN_CS.port->BCR = PIN_CS.pin;
-    LFM_WriteReg(DDS1508_ADDR_CH1_TPH1_L, ddsData->tph1[0]);
+//    LFM_WriteReg(DDS1508_ADDR_CH1_TPH1_L, ddsData->tph1[0]);
+//    LFM_WriteReg(DDS1508_ADDR_CH1_TPH2_L, ddsData->tph2[0]);
 
     LFM_WriteReg(DDS1508_ADDR_CH1_F_H, ddsData->startF[2]);
     LFM_WriteReg(DDS1508_ADDR_CH1_F_M, ddsData->startF[1]);
@@ -1179,7 +1192,7 @@ void LFM_SetPackBuffered(DdsRegisterData_t* ddsData)
     NVIC_EnableIRQ(TIM6_IRQn);
 }
 
-DDS1508_Command_t actualComm;
+DDS1508_Command_t DDS_actualComm;
 LfmSendState_t sendingState = IDLE;
 void TIM6_IRQHandler(void)
 {
@@ -1190,7 +1203,7 @@ void TIM6_IRQHandler(void)
     case IDLE:
         if(LfmFIFO_Count() > 0)
         {
-            actualComm = LfmFIFO_GetData();
+            DDS_actualComm = LfmFIFO_GetData();
             GPIO_ResetBits(PIN_CS.port, PIN_CS.pin);
             sendingState = ADR_SET;
         }
@@ -1202,7 +1215,7 @@ void TIM6_IRQHandler(void)
         break;
 
     case ADR_SET:
-        GPIO_Write(DATA_PORT, actualComm.address);
+        GPIO_Write(DATA_PORT, DDS_actualComm.address);
         GPIO_ResetBits(PIN_ADR.port, PIN_ADR.pin);
         GPIO_ResetBits(PIN_WR.port, PIN_WR.pin);
         sendingState = ADR_WR;
@@ -1215,7 +1228,7 @@ void TIM6_IRQHandler(void)
         break;
 
     case DATA_SET:
-        GPIO_Write(DATA_PORT, actualComm.value);
+        GPIO_Write(DATA_PORT, DDS_actualComm.value);
         GPIO_ResetBits(PIN_WR.port, PIN_WR.pin);
         sendingState = DATA_WR;
         break;
