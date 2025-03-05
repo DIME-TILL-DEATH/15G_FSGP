@@ -113,7 +113,7 @@
 
 typedef struct
 {
-    uint8_t frameData[256];
+    uint8_t frameData[512];
     uint16_t frameLength;
 }RecievedFrameData;
 

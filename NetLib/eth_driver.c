@@ -669,11 +669,11 @@ uint32_t ETH_TxPktChainMode(uint16_t len, uint8_t *pBuff)
     }
     /* Setting the Frame Length: bits[12:0] */
     DMATxDescToSet->ControlBufferSize = (len & ETH_DMATxDesc_TBS1);
-    DMATxDescToSet->Buffer1Addr = (uint32_t)pBuff;
-    pDMATxSet = DMATxDescToSet;
+
+    memcpy((uint8_t *)DMATxDescToSet->Buffer1Addr, pBuff, len);
+
     /* Setting the last segment and first segment bits (in this case a frame is transmitted in one descriptor) */
     DMATxDescToSet->Status |= ETH_DMATxDesc_LS | ETH_DMATxDesc_FS;
-
     /* Set Own bit of the Tx descriptor Status: gives the buffer back to ETHERNET DMA */
     DMATxDescToSet->Status |= ETH_DMATxDesc_OWN;
 
@@ -722,6 +722,7 @@ void ETHDRV_ETHIsr(void)
             if(DMARxDescToGet->Status & ETH_DMARxDesc_OWN)
             {
                 /***/
+                printf("RX descriptor OWM\r\n");
             }
             else
             {
@@ -730,7 +731,7 @@ void ETHDRV_ETHIsr(void)
                    (DMARxDescToGet->Status & ETH_DMARxDesc_FS))
                 {
                     recievedFrameData.frameLength = ((DMARxDescToGet->Status & ETH_DMARxDesc_FL) >> ETH_DMARXDESC_FRAME_LENGTHSHIFT);
-                    if(recievedFrameData.frameLength>256) recievedFrameData.frameLength = 256;
+                    if(recievedFrameData.frameLength>512) recievedFrameData.frameLength = 512;
 
 
                     memcpy(recievedFrameData.frameData, (uint32_t*)DMARxDescToGet->Buffer1Addr, recievedFrameData.frameLength);
