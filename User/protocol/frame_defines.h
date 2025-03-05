@@ -20,6 +20,7 @@
 #define FSGP_PACK_DESCR_FRAME 9
 #define UPPM_FDK_FRAME 15
 #define FSGP_FDK_FRAME 16
+#define FSGP_READY_FRAME 17
 
 #define FSGP_SIGNAL_PARAMS_FRAME 161
 #define FSGP_ACK_SIGNAL_PARAMS_FRAME 162
@@ -31,18 +32,21 @@
 
 typedef struct
 {
+    //word0, [32:0]
     uint16_t signature;
     uint8_t RTK;
     uint8_t TK;
 
+    //word1
     uint32_t RK;
 
-    uint8_t SCH;
+    //word2
+    uint16_t SCH;
 
-    uint8_t PF          :1;
-    uint8_t reserved1   :7;
 
-    uint16_t RF128;
+    uint16_t RF128_PF;
+
+    //word3
     uint32_t NF;
 }Frame_Header_Struct;
 
