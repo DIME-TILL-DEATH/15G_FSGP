@@ -308,12 +308,12 @@ void EXTI0_IRQHandler(void)
             break;
         }
         }
+
+        LFM_SetPack(&actualComm->ddsData);
+
+        HET_UpdateIO();
+        flagSetHeterodine = 1;
     }
-
-    LFM_SetPack(&actualComm->ddsData);
-
-    HET_UpdateIO();
-    flagSetHeterodine = 1;
 
 //    printf("used nk4:%d\r\n", actualComm->NKCH);
 
