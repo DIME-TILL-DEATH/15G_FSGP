@@ -1061,7 +1061,6 @@ void LFM_Init()
     DDS1508_SetDiscretisationFreq(FDISCRET);
 
     LfmFIFO_Init();
-    LFM_WriteStartupData();
 }
 
 /*
@@ -1121,8 +1120,8 @@ void LFM_WriteStartupData()
     LFM_WriteReg(DDS1508_ADDR_CH1_TPH1_L, ddsData.tph1[0]);
     LFM_WriteReg(DDS1508_ADDR_CH1_TPH2_L, ddsData.tph2[0]);
 
-    LFM_WriteReg(DDS1508_ADDR_CH1_TPH3_L, ddsData.tph3[0]);
-    LFM_WriteReg(DDS1508_ADDR_CH1_TPH4_L, ddsData.tph4[0]);
+//    LFM_WriteReg(DDS1508_ADDR_CH1_TPH3_L, ddsData.tph3[0]);
+//    LFM_WriteReg(DDS1508_ADDR_CH1_TPH4_L, ddsData.tph4[0]);
 
     LFM_WriteReg(DDS1508_ADDR_CLR, 0x003F);
     LFM_WriteReg(DDS1508_ADDR_CH1_LS_CTR, 0xBC10); //BC10);

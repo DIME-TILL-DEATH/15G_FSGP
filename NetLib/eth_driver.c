@@ -30,7 +30,7 @@ uint32_t volatile LocalTime;
 ETH_DMADESCTypeDef *pDMARxSet;
 ETH_DMADESCTypeDef *pDMATxSet;
 
-RecievedFrameData recievedFrameData;
+//RecievedFrameData recievedFrameData;
 //********************************************************************************
 
 #if(PHY_MODE == USE_10M_BASE)
@@ -459,6 +459,8 @@ void ETHDRV_Init(uint8_t *ip, uint8_t *gwip, uint8_t *mask, uint8_t *macAddr)
     ETH_LedConfiguration( );
     Delay_Ms(100);
 #endif
+    EthFIFO_Init();
+
 
     ETHDRV_Configuration(macAddr);
 
@@ -693,8 +695,49 @@ uint32_t ETH_TxPktChainMode(uint16_t len, uint8_t *pBuff)
     return ETH_SUCCESS;
 }
 
+#define ETH_BUFFER_SIZE 8
+uint8_t eth_buf_wr_index, eth_buf_rd_index, eth_buf_counter;
+RecievedDataPtr_t eth_buf[ETH_BUFFER_SIZE];
 
+void EthFIFO_Init()
+{
+    eth_buf_wr_index = 0;
+    eth_buf_rd_index = 0;
+    eth_buf_counter = 0;
+}
 
+void EthFIFO_PutData(RecievedDataPtr_t new_data)
+{
+    eth_buf[eth_buf_wr_index++] = new_data;
+
+    if(eth_buf_wr_index == ETH_BUFFER_SIZE) eth_buf_wr_index = 0;
+
+    eth_buf_counter++;
+}
+
+RecievedDataPtr_t* EthFIFO_GetData()
+{
+    RecievedDataPtr_t* data;
+
+    if(eth_buf_counter == 0)
+    {
+//        return &zeroPack;
+        return 0;
+    }
+
+    data = &eth_buf[eth_buf_rd_index++];
+
+    if(eth_buf_rd_index == ETH_BUFFER_SIZE) eth_buf_rd_index = 0;
+
+    eth_buf_counter--;
+
+    return data;
+}
+
+uint8_t EthFIFO_Count()
+{
+    return eth_buf_counter;
+}
 /*********************************************************************
  * @fn      WCHNET_ETHIsr
  *
@@ -722,19 +765,29 @@ void ETHDRV_ETHIsr(void)
             if(DMARxDescToGet->Status & ETH_DMARxDesc_OWN)
             {
                 /***/
-                printf("RX descriptor OWM\r\n");
+                printf("RX descriptor OWN\r\n");
             }
             else
             {
+                RecievedDataPtr_t data;
+
                 if(!(DMARxDescToGet->Status & ETH_DMARxDesc_ES)  &&
                    (DMARxDescToGet->Status & ETH_DMARxDesc_LS)   &&
                    (DMARxDescToGet->Status & ETH_DMARxDesc_FS))
                 {
-                    recievedFrameData.frameLength = ((DMARxDescToGet->Status & ETH_DMARxDesc_FL) >> ETH_DMARXDESC_FRAME_LENGTHSHIFT);
-                    if(recievedFrameData.frameLength>512) recievedFrameData.frameLength = 512;
+                    data.frameLength = ((DMARxDescToGet->Status & ETH_DMARxDesc_FL) >> ETH_DMARXDESC_FRAME_LENGTHSHIFT);
+                    data.bufferPtr = (uint32_t*)DMARxDescToGet->Buffer1Addr;
 
+//                    recievedFrameData.frameLength = ((DMARxDescToGet->Status & ETH_DMARxDesc_FL) >> ETH_DMARXDESC_FRAME_LENGTHSHIFT);
+//                    if(recievedFrameData.frameLength>512) recievedFrameData.frameLength = 512;
+//
+//
+//                    memcpy(recievedFrameData.frameData, (uint32_t*)DMARxDescToGet->Buffer1Addr, recievedFrameData.frameLength);
 
-                    memcpy(recievedFrameData.frameData, (uint32_t*)DMARxDescToGet->Buffer1Addr, recievedFrameData.frameLength);
+//                    printf("rec data:%d bytes\r\n", data.frameLength);
+//                    printf("data:%x\r\n", data.bufferPtr);
+
+                    EthFIFO_PutData(data);
                 }
 
                 DMARxDescToGet->Status = ETH_DMARxDesc_OWN;

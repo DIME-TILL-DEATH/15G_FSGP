@@ -11,13 +11,13 @@ extern "C" {
  */
 #define ETH_TXBUFNB                   2    /* The number of descriptors sent by the MAC  */
 
-#define ETH_RXBUFNB                   4    /* Number of MAC received descriptors  */
+#define ETH_RXBUFNB                   8    /* Number of MAC received descriptors  */
 
 #ifndef ETH_MAX_PACKET_SIZE
 #define ETH_RX_BUF_SZE                1520  /* MAC receive buffer length, an integer multiple of 4 */
 #define ETH_TX_BUF_SZE                1520  /* MAC send buffer length, an integer multiple of 4 */
 #else
-#define ETH_RX_BUF_SZE                ETH_MAX_PACKET_SIZE
+#define ETH_RX_BUF_SZE                512 //ETH_MAX_PACKET_SIZE
 #define ETH_TX_BUF_SZE                ETH_MAX_PACKET_SIZE
 #endif
 

@@ -117,10 +117,22 @@ typedef struct
     uint16_t frameLength;
 }RecievedFrameData;
 
+typedef struct
+{
+    uint32_t* bufferPtr;
+    uint16_t frameLength;
+}RecievedDataPtr_t;
+
 extern ETH_DMADESCTypeDef *DMATxDescToSet;
 extern ETH_DMADESCTypeDef *DMARxDescToGet;
 
-extern RecievedFrameData recievedFrameData;
+//extern RecievedFrameData recievedFrameData;
+
+// Rec data buffer:
+void EthFIFO_Init();
+void EthFIFO_PutData(RecievedDataPtr_t new_data);
+RecievedDataPtr_t* EthFIFO_GetData();
+uint8_t EthFIFO_Count();
 
 void ETHDRV_GenerateMacAddr(uint8_t *p);
 

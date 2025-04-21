@@ -43,7 +43,6 @@ void parseFrame(const uint8_t* inData, uint32_t inDataLen, uint8_t* outData, uin
             else
             {
                 if(CommFIFO_LastData().rcvdFrame.TVRS == recieved_command.TVRS){
-//                    printf("TVRS not incerased, drop\r\n");
                     return;
                 }
             }

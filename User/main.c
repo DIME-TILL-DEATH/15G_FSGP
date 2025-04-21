@@ -143,18 +143,20 @@ int main(void)
 	Delay_Init();
 	USART_Printf_Init(115200);
 
+    LFM_Init();
+    HET_Init();
+
+    PIN_Init();
+
+    CommFIFO_Init();
+
     printf("UDP client. Recieving control frames for FSGP\r\n");
     printf("SystemClk: %d\r\n",SystemCoreClock);
     printf("ChipID: %08x\r\n", DBGMCU_GetCHIPID());
 
-    Delay_Ms(2500);
+    Delay_Ms(10000);
 
-	CommFIFO_Init();
-
-	LFM_Init();
-	HET_Init();
-
-	PIN_Init();
+	LFM_WriteStartupData();
 	ETHERNET_Init();
 
     TIM3_Init();
@@ -193,36 +195,42 @@ int main(void)
             flagSetHeterodine = 0;
         }
 
-        if(recievedFrameData.frameLength>0)
-        {
-//            printf("Recieved frame length: %d\r\n", recievedFrameData.frameLength);
+        while(EthFIFO_Count()>0){
+            RecievedDataPtr_t* data = EthFIFO_GetData();
+//            printf("rec data:%d bytes\r\n", data->frameLength);
+//            printf("data:%x\r\n", data->bufferPtr);
 
-            // TODO §á§â§Ú §á§Ý§à§ä§ß§à§Þ §á§à§ä§à§Ü§Ö §Õ§Ö§ã§Ü§â§Ú§á§ä§à§â, §Ó§Ú§Õ§Ú§Þ§à, §á§Ú§ê§Ö§ä §Ó §ä§à§ä §Ò§å§æ§Ö§â §Ü§à§ä§à§â§í§Û §à§Ò§â§Ñ§Ò§Ñ§ä§í§Ó§Ñ§Ö§ä§ã§ñ
-            RecievedFrameData recievedFrameDataSaved;
-            memcpy(&recievedFrameDataSaved, &recievedFrameData, recievedFrameData.frameLength);
 
-            uint16_t frameType = recievedFrameDataSaved.frameData[POS_FRAME_TYPE_HW]<<8 | recievedFrameDataSaved.frameData[POS_FRAME_TYPE_LW];
-            uint8_t ipProtocolType = recievedFrameDataSaved.frameData[POS_PROTOCOL];
-
-            switch(frameType)
+            if(data->frameLength>0)
             {
-                case FRAME_TYPE_ARP:
-                {
-                    ETHERNET_ParseArpFrame(&recievedFrameDataSaved);
-                    break;
-                }
+    //            printf("Recieved frame length: %d\r\n", recievedFrameData.frameLength);
+                RecievedFrameData recievedFrameDataSaved;
+//                memcpy(&recievedFrameDataSaved, &recievedFrameData, recievedFrameData.frameLength);
+                memcpy(&recievedFrameDataSaved, data->bufferPtr, data->frameLength);
 
-                case FRAME_TYPE_IPv4:
+                uint16_t frameType = recievedFrameDataSaved.frameData[POS_FRAME_TYPE_HW]<<8 | recievedFrameDataSaved.frameData[POS_FRAME_TYPE_LW];
+                uint8_t ipProtocolType = recievedFrameDataSaved.frameData[POS_PROTOCOL];
+
+                switch(frameType)
                 {
-                    switch(ipProtocolType)
+                    case FRAME_TYPE_ARP:
                     {
-                    case IPv4_PROTOCOL_UDP: ETHERNET_ParseUdpFrame(&recievedFrameDataSaved); break;
-                    case IPv4_PROTOCOL_ICMP: ETHERNET_ParseIcmpFrame(&recievedFrameDataSaved); break;
+                        ETHERNET_ParseArpFrame(&recievedFrameDataSaved);
+                        break;
                     }
-                    break;
+
+                    case FRAME_TYPE_IPv4:
+                    {
+                        switch(ipProtocolType)
+                        {
+                        case IPv4_PROTOCOL_UDP: ETHERNET_ParseUdpFrame(&recievedFrameDataSaved); break;
+                        case IPv4_PROTOCOL_ICMP: ETHERNET_ParseIcmpFrame(&recievedFrameDataSaved); break;
+                        }
+                        break;
+                    }
                 }
+//                recievedFrameData.frameLength = 0;
             }
-            recievedFrameData.frameLength = 0;
         }
 	}
 }
@@ -246,11 +254,6 @@ void EXTI0_IRQHandler(void)
 
     if(actualComm)
     {
-        LFM_SetPack(&actualComm->ddsData);
-
-        HET_UpdateIO();
-        flagSetHeterodine = 1;
-
         HET_SetFilters(actualComm->rcvdFrame.NKCH);
 
         // §£3§¤§¢03
@@ -306,6 +309,11 @@ void EXTI0_IRQHandler(void)
         }
         }
     }
+
+    LFM_SetPack(&actualComm->ddsData);
+
+    HET_UpdateIO();
+    flagSetHeterodine = 1;
 
 //    printf("used nk4:%d\r\n", actualComm->NKCH);
 
