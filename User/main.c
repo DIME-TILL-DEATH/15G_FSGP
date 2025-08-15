@@ -33,6 +33,8 @@ ControlPin_t pinVgNeg2;
 ControlPin_t pinVC1;
 ControlPin_t pinVC2;
 
+ControlPin_t pinComPs;
+
 typedef enum
 {
     PS_OFF = 0,
@@ -87,6 +89,7 @@ void PIN_Init()
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
     GPIO_Init(pinVC2.port, &GPIO_InitStructure);
 
+    // Vg
     pinVgNeg1.pin = GPIO_Pin_3;
     pinVgNeg1.port = GPIOB;
 
@@ -100,6 +103,14 @@ void PIN_Init()
     GPIO_InitStructure.GPIO_Pin = pinVgNeg2.pin;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
     GPIO_Init(pinVgNeg2.port, &GPIO_InitStructure);
+
+    // ComPS
+    pinComPs.pin = GPIO_Pin_0;
+    pinComPs.port = GPIOC;
+
+    GPIO_InitStructure.GPIO_Pin = pinComPs.pin;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+    GPIO_Init(pinComPs.port, &GPIO_InitStructure);
 }
 
 void INT_Init()
@@ -136,6 +147,7 @@ void TIM3_Init(void)
 }
 
 volatile bool flagSendFdk = 0;
+volatile bool flagSendRdy = 0;
 bool flagSetHeterodine = 0;
 int main(void)
 {
@@ -184,9 +196,16 @@ int main(void)
         if(flagSendFdk)
         {
             ETHERNET_SendFdkFrame();
-            ETHERNET_SendRdyFrame();
+//            ETHERNET_SendRdyFrame();
             isRecievingControlFrames = 0;
             flagSendFdk = 0;
+        }
+
+        if(flagSendRdy)
+        {
+            ETHERNET_SendRdyFrame();
+            isRecievingControlFrames = 0;
+            flagSendRdy = 0;
         }
 
         if(flagSetHeterodine && CommFIFO_Count()>0)
@@ -242,7 +261,12 @@ void TIM3_IRQHandler()
     TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
 
     repCounter++;
-    if(repCounter == 50){
+
+    if(repCounter == 5){
+        flagSendRdy = 1;
+    }
+
+    if(repCounter == 10){
         flagSendFdk = 1;
         repCounter = 0;
     }
@@ -272,6 +296,8 @@ void EXTI0_IRQHandler(void)
             GPIO_SetBits(pinVC1.port, pinVC1.pin);
             GPIO_ResetBits(pinVC2.port, pinVC2.pin);
         }
+
+        GPIO_WriteBit(pinComPs.port, pinComPs.pin, actualComm->rcvdFrame.ComPS);
 
         switch(actualComm->rcvdFrame.TipPS)
         {
