@@ -21,8 +21,8 @@ uint32_t ETHDRV_RegInit(ETH_InitTypeDef* ETH_InitStruct, uint16_t PHYAddress);
  __attribute__((__aligned__(4))) ETH_DMADESCTypeDef DMARxDscrTab[ETH_RXBUFNB];      /* MAC receive descriptor, 4-byte aligned*/
  __attribute__((__aligned__(4))) ETH_DMADESCTypeDef DMATxDscrTab[ETH_TXBUFNB];      /* MAC send descriptor, 4-byte aligned */
 
- __attribute__((__aligned__(4))) uint8_t  MACRxBuf[ETH_RXBUFNB*ETH_RX_BUF_SZE];     /* MAC receive buffer, 4-byte aligned */
- __attribute__((__aligned__(4))) uint8_t  MACTxBuf[ETH_TXBUFNB*ETH_TX_BUF_SZE];     /* MAC send buffer, 4-byte aligned */
+ __attribute__((__aligned__(4))) uint8_t  MACRxBuf[ETH_RXBUFNB*ETH_RX_BUF_SIZE];     /* MAC receive buffer, 4-byte aligned */
+ __attribute__((__aligned__(4))) uint8_t  MACTxBuf[ETH_TXBUFNB*ETH_TX_BUF_SIZE];     /* MAC send buffer, 4-byte aligned */
 
 uint16_t gPHYAddress;
 uint32_t volatile LocalTime;
@@ -464,8 +464,8 @@ void ETHDRV_Init(uint8_t *ip, uint8_t *gwip, uint8_t *mask, uint8_t *macAddr)
 
     ETHDRV_Configuration(macAddr);
 
-    ETH_DMATxDescChainInit(DMATxDscrTab, MACTxBuf, ETH_TXBUFNB);
-    ETH_DMARxDescChainInit(DMARxDscrTab, MACRxBuf, ETH_RXBUFNB);
+    ETH_DMATxDescChainInit(DMATxDscrTab, MACTxBuf, ETH_TXBUFNB, ETH_TX_BUF_SIZE);
+    ETH_DMARxDescChainInit(DMARxDscrTab, MACRxBuf, ETH_RXBUFNB, ETH_RX_BUF_SIZE);
     pDMARxSet = DMARxDscrTab;
     pDMATxSet = DMATxDscrTab;
 
@@ -695,7 +695,7 @@ uint32_t ETH_TxPktChainMode(uint16_t len, uint8_t *pBuff)
     return ETH_SUCCESS;
 }
 
-#define ETH_BUFFER_SIZE 8
+#define ETH_BUFFER_SIZE 24
 uint8_t eth_buf_wr_index, eth_buf_rd_index, eth_buf_counter;
 RecievedDataPtr_t eth_buf[ETH_BUFFER_SIZE];
 
@@ -765,7 +765,7 @@ void ETHDRV_ETHIsr(void)
             if(DMARxDescToGet->Status & ETH_DMARxDesc_OWN)
             {
                 /***/
-                printf("RX descriptor OWN\r\n");
+//                printf("RX descriptor OWN\r\n");
             }
             else
             {

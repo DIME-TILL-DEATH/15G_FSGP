@@ -283,7 +283,7 @@ void ETHERNET_ParseUdpFrame(const RecievedFrameData* frame)
 
             memcpy(answer, answerFrameHeader.rawData, UDP_FULL_HEADER_SIZE);
 
-            ETH_TxPktChainMode(totalAnswerLen, answer);
+            while(!ETH_TxPktChainMode(totalAnswerLen, answer));
 
 //            if(!compareArrays(bosMACAddr, terminalMACAddr, 6))
 //            {
@@ -325,7 +325,7 @@ void ETHERNET_SendArpRequest(uint8_t requestIpAdr[4]){
 
 }
 
-
+uint8_t rawFdkFrame[512] = {0};
 void ETHERNET_SendFdkFrame()
 {
     uint8_t dummyMACAddr[6] = {0};
@@ -338,7 +338,7 @@ void ETHERNET_SendFdkFrame()
     {
         UDPFrame fdkFrameHeader;
 
-        uint8_t rawFdkFrame[512] = {0};
+//        uint8_t rawFdkFrame[512] = {0};
         uint16_t payloadLen;
 
         getFdkFramePayload(&(rawFdkFrame[UDP_PAYLOAD_POSITION]), &payloadLen);
@@ -377,7 +377,8 @@ void ETHERNET_SendFdkFrame()
 
         memcpy(rawFdkFrame, fdkFrameHeader.rawData, UDP_FULL_HEADER_SIZE);
 
-        ETH_TxPktChainMode(totalAnswerLen, rawFdkFrame);
+
+//        ETH_TxPktChainMode(totalAnswerLen, rawFdkFrame);
     }
     else {
         ETHERNET_SendArpRequest(bosIPAddr);

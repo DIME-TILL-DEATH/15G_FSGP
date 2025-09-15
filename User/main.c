@@ -146,6 +146,10 @@ void TIM3_Init(void)
     TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
 }
 
+//uint64_t numpCounter = 0;
+//uint64_t errTVRS, errNUMP;
+//bool warning=false;
+
 volatile bool flagSendFdk = 0;
 volatile bool flagSendRdy = 0;
 bool flagSetHeterodine = 0;
@@ -189,24 +193,20 @@ int main(void)
 
     Delay_Ms(2000);
 
+//    bool warningWritten = false;
+
 	while(1)
     {
+//	    if(!warningWritten)
+//	    {
+//	        if(warning)
+//            {
+//	            warningWritten = true;
+//	            printf("TVRS and NUMP error: %d %d", errTVRS, errNUMP);
+//            }
+//	    }
+
         ETHDRV_MainTask();
-
-        if(flagSendFdk)
-        {
-            ETHERNET_SendFdkFrame();
-//            ETHERNET_SendRdyFrame();
-            isRecievingControlFrames = 0;
-            flagSendFdk = 0;
-        }
-
-        if(flagSendRdy)
-        {
-            ETHERNET_SendRdyFrame();
-            isRecievingControlFrames = 0;
-            flagSendRdy = 0;
-        }
 
         if(flagSetHeterodine && CommFIFO_Count()>0)
         {
@@ -251,15 +251,28 @@ int main(void)
 //                recievedFrameData.frameLength = 0;
             }
         }
+
+        if(flagSendFdk)
+        {
+            ETHERNET_SendFdkFrame();
+
+            isRecievingControlFrames = 0;
+            flagSendFdk = 0;
+        }
+
+        if(flagSendRdy)
+        {
+            ETHERNET_SendRdyFrame();
+            isRecievingControlFrames = 0;
+            flagSendRdy = 0;
+        }
 	}
 }
 
 // IRQ handlers ======================
-uint8_t repCounter = 0;
+uint16_t repCounter = 0;
 void TIM3_IRQHandler()
 {
-    TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
-
     repCounter++;
 
     if(repCounter == 5){
@@ -270,30 +283,42 @@ void TIM3_IRQHandler()
         flagSendFdk = 1;
         repCounter = 0;
     }
+
+    TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
 }
 
 void EXTI0_IRQHandler(void)
 {
+//    numpCounter++;
     actualComm = CommFIFO_GetData();
 
     if(actualComm)
     {
+        GPIO_SetBits(pinVC1.port, pinVC1.pin);
+
         HET_SetFilters(actualComm->rcvdFrame.NKCH);
+
+//        if(numpCounter != actualComm->rcvdFrame.TVRS)
+//        {
+//            warning = true;
+//            errTVRS = actualComm->rcvdFrame.TVRS;
+//            errNUMP = numpCounter;
+//        }
 
         // зг3здзв03
         if(actualComm->rcvdFrame.NKCH < 36)
         {
-            GPIO_SetBits(pinVC1.port, pinVC1.pin);
+//            GPIO_SetBits(pinVC1.port, pinVC1.pin);
             GPIO_SetBits(pinVC2.port, pinVC2.pin);
         }
         else if(actualComm->rcvdFrame.NKCH >= 36 && actualComm->rcvdFrame.NKCH < 51)
         {
-            GPIO_ResetBits(pinVC1.port, pinVC1.pin);
+//            GPIO_ResetBits(pinVC1.port, pinVC1.pin);
             GPIO_SetBits(pinVC2.port, pinVC2.pin);
         }
         else
         {
-            GPIO_SetBits(pinVC1.port, pinVC1.pin);
+//            GPIO_SetBits(pinVC1.port, pinVC1.pin);
             GPIO_ResetBits(pinVC2.port, pinVC2.pin);
         }
 
@@ -343,5 +368,6 @@ void EXTI0_IRQHandler(void)
 
 //    printf("used nk4:%d\r\n", actualComm->NKCH);
 
+    GPIO_ResetBits(pinVC1.port, pinVC1.pin);
     EXTI_ClearITPendingBit(EXTI_Line0);
 }

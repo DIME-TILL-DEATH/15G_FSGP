@@ -25,8 +25,6 @@ void parseFrame(const uint8_t* inData, uint32_t inDataLen, uint8_t* outData, uin
     {
         case FSGP_COMMAND_FRAME:
         {
-
-
             FSGP_Command_Frame *comand_ptr = (FSGP_Command_Frame *)&(inData[COMMAND_DATA_POS]);
             FSGP_Command_Frame recieved_command = *comand_ptr;
 
@@ -51,7 +49,7 @@ void parseFrame(const uint8_t* inData, uint32_t inDataLen, uint8_t* outData, uin
             else ackFramesCounter++;
 
             FSGP_Command_Data commData;
-            commData.ddsData = LFM_CalcPackData(packData[recieved_command.KP], recieved_command.NLCHM, 0, 0);
+//            commData.ddsData = LFM_CalcPackData(packData[recieved_command.KP], recieved_command.NLCHM, 0, 0);
             commData.rcvdFrame = recieved_command;
 
             if(CommFIFO_PutData(commData))
@@ -112,7 +110,7 @@ void parseFrame(const uint8_t* inData, uint32_t inDataLen, uint8_t* outData, uin
             int16_t speedMS = __builtin_bswap16(paramsFrame_ptr->speed);
             uint16_t delay = __builtin_bswap16(paramsFrame_ptr->delay);
 
-            printf("recieved signal description frame, speed: %d, delay: %d\r\n", speedMS, delay);
+//            printf("recieved signal description frame, speed: %d, delay: %d\r\n", speedMS, delay);
 
             //float_t fDoppler = 2 * speedMS * FSTART / 300000000;
             //LFM_RecalcImitData(delay, fDoppler);
@@ -128,7 +126,7 @@ void parseFrame(const uint8_t* inData, uint32_t inDataLen, uint8_t* outData, uin
         default:
             {
 
-                printf("unknown frame type: %d\r\n", inData[HEADER_FRAME_TYPE_POS]);
+//                printf("unknown frame type: %d\r\n", inData[HEADER_FRAME_TYPE_POS]);
             }
     }
 }
