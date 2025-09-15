@@ -224,7 +224,6 @@ int main(void)
             {
     //            printf("Recieved frame length: %d\r\n", recievedFrameData.frameLength);
                 RecievedFrameData recievedFrameDataSaved;
-//                memcpy(&recievedFrameDataSaved, &recievedFrameData, recievedFrameData.frameLength);
                 memcpy(&recievedFrameDataSaved, data->bufferPtr, data->frameLength);
 
                 uint16_t frameType = recievedFrameDataSaved.frameData[POS_FRAME_TYPE_HW]<<8 | recievedFrameDataSaved.frameData[POS_FRAME_TYPE_LW];
@@ -248,7 +247,6 @@ int main(void)
                         break;
                     }
                 }
-//                recievedFrameData.frameLength = 0;
             }
         }
 

@@ -50,9 +50,10 @@ void parseFrame(const uint8_t* inData, uint32_t inDataLen, uint8_t* outData, uin
 
             FSGP_Command_Data commData;
 //            commData.ddsData = LFM_CalcPackData(packData[recieved_command.KP], recieved_command.NLCHM, 0, 0);
+            commData.ddsData = LFM_GetPackData(recieved_command.KP, recieved_command.NLCHM);
             commData.rcvdFrame = recieved_command;
 
-            if(CommFIFO_PutData(commData))
+            if(CommFIFO_PutData(&commData))
             {
                 memcpy(outData, inData, inDataLen);
 

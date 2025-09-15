@@ -15,11 +15,11 @@ void CommFIFO_Init()
     zeroPack.rcvdFrame.NKCH = 3;
 }
 
-bool CommFIFO_PutData(FSGP_Command_Data new_data)
+bool CommFIFO_PutData(const FSGP_Command_Data* new_data)
 {
     if(buf_counter < COMMAND_FIFO_SIZE)
     {
-        command_buf[buf_wr_index++] = new_data;
+        command_buf[buf_wr_index++] = *new_data;
 
         if(buf_wr_index == COMMAND_FIFO_SIZE) buf_wr_index = 0;
 

@@ -251,7 +251,6 @@ void ETHERNET_ParseUdpFrame(const RecievedFrameData* frame)
                 &(answer[UDP_PAYLOAD_POSITION]),
                 &outDataLen);
 
-        // Only ack frames!!!!!
         if(outDataLen > 0)
         {
             isRecievingControlFrames = 1;
@@ -259,12 +258,12 @@ void ETHERNET_ParseUdpFrame(const RecievedFrameData* frame)
             uint16_t totalAnswerLen = UDP_FULL_HEADER_SIZE + outDataLen;
 
             memcpy(answerFrameHeader.structData.srcMAC, MACAddr, 6);
-            memcpy(answerFrameHeader.structData.dstMAC, mcdoMACAddr, 6);//parsedFrameHeader.structData.srcMAC, 6);
+            memcpy(answerFrameHeader.structData.dstMAC, mcdoMACAddr, 6);
 
             answerFrameHeader.structData.ipTotalLength = __builtin_bswap16(totalAnswerLen - ETHERNETII_HEADER_SIZE);
 
             memcpy(answerFrameHeader.structData.srcIpAddress, IPAddr, 4);
-            memcpy(answerFrameHeader.structData.dstIpAddress, mcdoIPAddr, 4);//parsedFrameHeader.structData.srcIpAddress, 4);
+            memcpy(answerFrameHeader.structData.dstIpAddress, mcdoIPAddr, 4);
 
             answerFrameHeader.structData.srcPort = __builtin_bswap16(ackSrcPort);
             answerFrameHeader.structData.dstPort = __builtin_bswap16(ackDstPort);
@@ -284,18 +283,6 @@ void ETHERNET_ParseUdpFrame(const RecievedFrameData* frame)
             memcpy(answer, answerFrameHeader.rawData, UDP_FULL_HEADER_SIZE);
 
             while(!ETH_TxPktChainMode(totalAnswerLen, answer));
-
-//            if(!compareArrays(bosMACAddr, terminalMACAddr, 6))
-//            {
-//                memcpy(answerFrameHeader.structData.dstMAC, terminalMACAddr, 6);
-//                memcpy(answerFrameHeader.structData.dstIpAddress, terminalIPAddr, 4);
-//                memcpy(answer, answerFrameHeader.rawData, UDP_FULL_HEADER_SIZE);
-//                ETH_TxPktChainMode(totalAnswerLen, answer);
-//            }
-        }
-        else
-        {
-//            printf("buf overflow\r\n");
         }
     }
 }
@@ -329,10 +316,6 @@ uint8_t rawFdkFrame[512] = {0};
 void ETHERNET_SendFdkFrame()
 {
     uint8_t dummyMACAddr[6] = {0};
-
-//    ETHERNET_SendArpRequest(mcdoIPAddr);
-//    ETHERNET_SendArpRequest(terminalIPAddr);
-//    ETHERNET_SendArpRequest(bosIPAddr);
 
     if(!compareArrays(bosMACAddr, dummyMACAddr, 6))
     {
@@ -380,7 +363,8 @@ void ETHERNET_SendFdkFrame()
 
 //        ETH_TxPktChainMode(totalAnswerLen, rawFdkFrame);
     }
-    else {
+    else
+    {
         ETHERNET_SendArpRequest(bosIPAddr);
     }
 }

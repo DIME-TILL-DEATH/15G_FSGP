@@ -44,6 +44,7 @@ void LFM_SetPack(DdsRegisterData_t* ddsData);
 void LFM_SetPackBuffered(DdsRegisterData_t* ddsData);
 //void LFM_RecalcImitData(double_t delay, double_t dopplerFreq);
 DdsRegisterData_t LFM_CalcPackData(LfmPack_t pack, bool isPositiveLfm, double_t delay, double_t dopplerFreq);
+DdsRegisterData_t LFM_GetPackData(uint16_t packNumber, uint8_t lfmAngle);
 
 void LFM_SetStage2();
 

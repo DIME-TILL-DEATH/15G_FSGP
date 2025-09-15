@@ -8,6 +8,11 @@
 GPIO_TypeDef* DATA_PORT;
 ControlPin_t PIN_CS, PIN_ADR, PIN_WR, PIN_RD;
 
+DdsRegisterData_t shortPack_24_184_pos;
+DdsRegisterData_t shortPack_24_184_neg;
+DdsRegisterData_t shortPack_24_216_pos;
+DdsRegisterData_t shortPack_24_216_neg;
+
 static inline void LFM_WriteReg(uint16_t address, uint16_t value);
 
 LfmPack_t packData[PACK_COUNT+1] =
@@ -973,6 +978,7 @@ LfmPack_t packData[PACK_COUNT+1] =
 
 void TIM6_IRQHandler(void)  __attribute__((interrupt("WCH-Interrupt-fast")));
 
+
 /********************************************************
  * delay - in discrets 24MHz
  * doppler - in MHz
@@ -1030,6 +1036,24 @@ DdsRegisterData_t LFM_CalcPackData(LfmPack_t pack, bool isPositiveLfm, double_t 
     return outputData;
 }
 
+DdsRegisterData_t LFM_GetPackData(uint16_t packNumber, uint8_t lfmAngle)
+{
+    DdsRegisterData_t outputData = {0};
+
+    switch(packNumber)
+    {
+        case 149:
+        {
+            if(lfmAngle) outputData = shortPack_24_184_pos;
+            else outputData = shortPack_24_184_neg;
+            break;
+        }
+
+        default: LFM_CalcPackData(packData[packNumber], lfmAngle, 0, 0);
+    }
+    return outputData;
+}
+
 void LFM_Init()
 {
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOD | RCC_APB2Periph_GPIOE, ENABLE);
@@ -1061,6 +1085,12 @@ void LFM_Init()
     DDS1508_SetDiscretisationFreq(FDISCRET);
 
     LfmFIFO_Init();
+
+    shortPack_24_184_pos = LFM_CalcPackData(packData[19], 1, 0, 0);
+    shortPack_24_184_neg = LFM_CalcPackData(packData[19], 0, 0, 0);
+
+    shortPack_24_216_pos = LFM_CalcPackData(packData[151], 1, 0, 0);
+    shortPack_24_216_neg = LFM_CalcPackData(packData[151], 0, 0, 0);
 }
 
 /*
