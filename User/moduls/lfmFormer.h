@@ -7,7 +7,17 @@
 #include "debug.h"
 #include "dds1508.h"
 
+#include "fsgp_command_frame.h"
+
 #include "pack_data.h"
+
+typedef enum
+{
+    PS_OFF = 0,
+    PS_SIN,
+    PS_NOISE,
+    PS_LFM
+}PILOT_type_t;
 
 typedef struct
 {
@@ -36,15 +46,22 @@ typedef struct
     uint16_t deltaF[3];
 }DdsRegisterData_t;
 
+typedef struct
+{
+    float fStart;
+    float fStop;
+}LfmBand_t;
+
 extern LfmPack_t packData[];
+extern LfmBand_t lfmBand[];
 
 void LFM_Init();
 void LFM_WriteStartupData();
 void LFM_SetPack(DdsRegisterData_t* ddsData);
 void LFM_SetPackBuffered(DdsRegisterData_t* ddsData);
 //void LFM_RecalcImitData(double_t delay, double_t dopplerFreq);
-DdsRegisterData_t LFM_CalcPackData(LfmPack_t pack, bool isPositiveLfm, double_t delay, double_t dopplerFreq);
-DdsRegisterData_t LFM_GetPackData(uint16_t packNumber, uint8_t lfmAngle);
+DdsRegisterData_t LFM_CalcPackData(LfmPack_t pack, float fStart, float fStop, float delay, float dopplerFreq);
+DdsRegisterData_t LFM_GetPackData(const FSGP_Command_Frame* dataFrame);
 
 void LFM_SetStage2();
 

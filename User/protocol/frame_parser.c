@@ -16,7 +16,12 @@
 
 void mConvertEndians(FSGP_Command_Frame* comm);
 
+extern volatile uint32_t numpCounter;
+extern uint32_t numpCounterRes;
+extern volatile uint32_t vziLenght[];
 uint16_t ackFramesCounter = 0;
+
+FSGP_Command_Frame recieved_command;
 void parseFrame(const uint8_t* inData, uint32_t inDataLen, uint8_t* outData, uint32_t* outDataLen)
 {
     *outDataLen = 0;
@@ -25,14 +30,15 @@ void parseFrame(const uint8_t* inData, uint32_t inDataLen, uint8_t* outData, uin
     {
         case FSGP_COMMAND_FRAME:
         {
-            FSGP_Command_Frame *comand_ptr = (FSGP_Command_Frame *)&(inData[COMMAND_DATA_POS]);
-            FSGP_Command_Frame recieved_command = *comand_ptr;
-
-           // printf("recieved nk4:%d\r\n", recieved_command.NKCH);
+            memcpy(&recieved_command, &inData[COMMAND_DATA_POS], sizeof(FSGP_Command_Frame));
 
             mConvertEndians(&recieved_command);
 
-            if(recieved_command.SBR_OCH) CommFIFO_Clear();
+            if(recieved_command.SBR_OCH)
+            {
+                CommFIFO_Clear();
+                numpCounter = 0;
+            }
 
             if(CommFIFO_Count() == 0)
             {
@@ -50,15 +56,22 @@ void parseFrame(const uint8_t* inData, uint32_t inDataLen, uint8_t* outData, uin
 
             FSGP_Command_Data commData;
 //            commData.ddsData = LFM_CalcPackData(packData[recieved_command.KP], recieved_command.NLCHM, 0, 0);
-            commData.ddsData = LFM_GetPackData(recieved_command.KP, recieved_command.NLCHM);
+            commData.ddsData = LFM_GetPackData(&recieved_command);
             commData.rcvdFrame = recieved_command;
 
-            if(CommFIFO_PutData(&commData))
+            if(CommFIFO_PutData(commData))
             {
+//                comand_ptr->testNumpCounter = 32;
+
+                if(inDataLen > 512) inDataLen = 512;
+
                 memcpy(outData, inData, inDataLen);
 
                 outData[FSGP_BUFFER_SIZE_LW_POS] = COMMAND_FIFO_SIZE;
                 outData[FSGP_QUEUE_SIZE_LW_POS] = CommFIFO_Count();
+
+                memcpy(&outData[47*4], &numpCounterRes, 4); // TEST
+                memcpy(&outData[41*4], &vziLenght[0], 4 * 6);
 
                 *outDataLen = inDataLen + 16;
             }
@@ -185,7 +198,10 @@ void getFdkFramePayload(uint8_t* data_ptr, uint16_t* dataLen_ptr)
     memcpy(&data_ptr[FRAME_HEADER_SIZE], datagramHeader.rawData, DATAGRAM_HEADER_SIZE);
 
     // FDK data
-    memcpy(&data_ptr[FRAME_HEADER_SIZE + DATAGRAM_HEADER_SIZE], &(actualComm->rcvdFrame), sizeof(FSGP_Command_Frame));
+    if(actualComm)
+        memcpy(&data_ptr[FRAME_HEADER_SIZE + DATAGRAM_HEADER_SIZE], &(actualComm->rcvdFrame), sizeof(FSGP_Command_Frame));
+    else
+        memset(&data_ptr[FRAME_HEADER_SIZE + DATAGRAM_HEADER_SIZE], 0, sizeof(FSGP_Command_Frame));
 
     if(dataLen_ptr) *dataLen_ptr = datagramSize;
 }

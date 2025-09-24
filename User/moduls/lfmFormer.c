@@ -15,6 +15,34 @@ DdsRegisterData_t shortPack_24_216_neg;
 
 static inline void LFM_WriteReg(uint16_t address, uint16_t value);
 
+LfmBand_t lfmBand[] =
+{
+    {
+        .fStart = 309.5,
+        .fStop = 313.5
+    },
+
+    {
+        .fStart = 310.5,
+        .fStop = 314.5
+    },
+
+    {
+        .fStart = 310,
+        .fStop = 315
+    },
+
+    {
+        .fStart = 307.5,
+        .fStop = 317.5
+    },
+
+    {
+        .fStart = 302.5,
+        .fStop = 322.5
+    },
+};
+
 LfmPack_t packData[PACK_COUNT+1] =
 {
         // pack 0 - zero pack
@@ -983,24 +1011,24 @@ void TIM6_IRQHandler(void)  __attribute__((interrupt("WCH-Interrupt-fast")));
  * delay - in discrets 24MHz
  * doppler - in MHz
  *******************************************************/
-DdsRegisterData_t LFM_CalcPackData(LfmPack_t pack, bool isPositiveLfm, double_t delay, double_t dopplerFreq)
+DdsRegisterData_t LFM_CalcPackData(LfmPack_t pack, float fStart, float fStop, float delay, float dopplerFreq)
 {
     DdsRegisterData_t outputData = {0};
 
     uint64_t freqStart;
 
     uint64_t dF;
-    if(isPositiveLfm)
-    {
-        freqStart = DDS1508_CalcFreqWord(FSTART+dopplerFreq);
-        dF = DDS1508_CalcDFWord(FSTART, FSTOP, pack.impLength);
+//    if(isPositiveLfm)
+//    {
+        freqStart = DDS1508_CalcFreqWord(fStart+dopplerFreq);
+        dF = DDS1508_CalcDFWord(fStart, fStop, pack.impLength);
 
-    }
-    else
-    {
-        freqStart = DDS1508_CalcFreqWord(FSTOP+dopplerFreq);
-        dF = DDS1508_CalcDFWord(FSTOP, FSTART, pack.impLength);
-    }
+//    }
+//    else
+//    {
+//        freqStart = DDS1508_CalcFreqWord(FSTOP+dopplerFreq);
+//        dF = DDS1508_CalcDFWord(FSTOP, FSTART, pack.impLength);
+//    }
 
     outputData.startF[0] = (freqStart & 0xFFFF);
     outputData.startF[1] = (freqStart & 0xFFFF0000) >> 16;
@@ -1036,20 +1064,28 @@ DdsRegisterData_t LFM_CalcPackData(LfmPack_t pack, bool isPositiveLfm, double_t 
     return outputData;
 }
 
-DdsRegisterData_t LFM_GetPackData(uint16_t packNumber, uint8_t lfmAngle)
+DdsRegisterData_t LFM_GetPackData(const FSGP_Command_Frame* dataFrame)
 {
     DdsRegisterData_t outputData = {0};
 
-    switch(packNumber)
+    LfmBand_t currentLfmBand;
+
+    if(dataFrame->TipPS == PS_LFM) currentLfmBand = lfmBand[dataFrame->PolosaPS];
+    else currentLfmBand = lfmBand[dataFrame->PolosaZI];
+
+    float fStart = dataFrame->NLCHM ? currentLfmBand.fStart : currentLfmBand.fStop;
+    float fStop = dataFrame->NLCHM ? currentLfmBand.fStop : currentLfmBand.fStart;
+
+    switch(dataFrame->KP)
     {
         case 149:
         {
-            if(lfmAngle) outputData = shortPack_24_184_pos;
+            if(dataFrame->NLCHM) outputData = shortPack_24_184_pos;
             else outputData = shortPack_24_184_neg;
             break;
         }
 
-        default: LFM_CalcPackData(packData[packNumber], lfmAngle, 0, 0);
+        default: outputData = LFM_CalcPackData(packData[dataFrame->KP], fStart, fStop, 0, 0);
     }
     return outputData;
 }
@@ -1086,11 +1122,11 @@ void LFM_Init()
 
     LfmFIFO_Init();
 
-    shortPack_24_184_pos = LFM_CalcPackData(packData[19], 1, 0, 0);
-    shortPack_24_184_neg = LFM_CalcPackData(packData[19], 0, 0, 0);
+    shortPack_24_184_pos = LFM_CalcPackData(packData[19], lfmBand[4].fStart, lfmBand[4].fStop, 0, 0);
+    shortPack_24_184_neg = LFM_CalcPackData(packData[19], lfmBand[4].fStop, lfmBand[4].fStart, 0, 0);
 
-    shortPack_24_216_pos = LFM_CalcPackData(packData[151], 1, 0, 0);
-    shortPack_24_216_neg = LFM_CalcPackData(packData[151], 0, 0, 0);
+    shortPack_24_216_pos = LFM_CalcPackData(packData[151], lfmBand[4].fStart, lfmBand[4].fStop, 0, 0);
+    shortPack_24_216_neg = LFM_CalcPackData(packData[151], lfmBand[4].fStop, lfmBand[4].fStart, 0, 0);
 }
 
 /*
@@ -1127,7 +1163,7 @@ void LFM_WriteStartupData()
     LFM_WriteReg(DDS1508_ADDR_SYNC, 0x4182);
     LFM_WriteReg(DDS1508_ADDR_ROUTE, 0x0000);
 
-    DdsRegisterData_t ddsData = LFM_CalcPackData(packData[0], 1, 0, 0);
+    DdsRegisterData_t ddsData = LFM_CalcPackData(packData[0], lfmBand[4].fStart, lfmBand[4].fStop, 0, 0);
 
     LFM_WriteReg(DDS1508_ADDR_CH1_F_H, ddsData.startF[2]);
     LFM_WriteReg(DDS1508_ADDR_CH1_F_M, ddsData.startF[1]);
