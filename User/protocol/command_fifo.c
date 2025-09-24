@@ -1,10 +1,12 @@
 #include "command_fifo.h"
 
-uint8_t buf_wr_index, buf_rd_index, buf_counter;
+volatile uint8_t buf_wr_index;
+volatile uint8_t buf_rd_index;
+volatile uint8_t buf_counter;
 FSGP_Command_Data command_buf[COMMAND_FIFO_SIZE];
 FSGP_Command_Data zeroPack = {0};
 
-FSGP_Command_Data* actualComm;
+FSGP_Command_Data* actualComm = 0;
 
 void CommFIFO_Init()
 {
@@ -15,11 +17,12 @@ void CommFIFO_Init()
     zeroPack.rcvdFrame.NKCH = 3;
 }
 
-bool CommFIFO_PutData(const FSGP_Command_Data* new_data)
+bool protectFlag = false;
+bool CommFIFO_PutData(FSGP_Command_Data new_data)
 {
     if(buf_counter < COMMAND_FIFO_SIZE)
     {
-        command_buf[buf_wr_index++] = *new_data;
+        command_buf[buf_wr_index++] = new_data;
 
         if(buf_wr_index == COMMAND_FIFO_SIZE) buf_wr_index = 0;
 

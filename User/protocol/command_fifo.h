@@ -15,7 +15,7 @@ typedef struct{
 
 void CommFIFO_Init();
 
-bool CommFIFO_PutData(const FSGP_Command_Data* new_data);
+bool CommFIFO_PutData(FSGP_Command_Data new_data);
 FSGP_Command_Data CommFIFO_LastData();
 
 // Fast get and permanently delete next data

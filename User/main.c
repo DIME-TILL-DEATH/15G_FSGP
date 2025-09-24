@@ -35,13 +35,6 @@ ControlPin_t pinVC2;
 
 ControlPin_t pinComPs;
 
-typedef enum
-{
-    PS_OFF = 0,
-    PS_SIN,
-    PS_HUM,
-    PS_LCM
-}PILOT_type_t;
 
 void PIN_Init()
 {
@@ -54,7 +47,7 @@ void PIN_Init()
 
     // NP
     GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU; //GPIO_Mode_IN_FLOATING;
     GPIO_Init(GPIOA, &GPIO_InitStructure);
 
     // HUM
@@ -128,7 +121,7 @@ void INT_Init()
     NVIC_EnableIRQ(EXTI0_IRQn);
 }
 
-void TIM3_Init(void)
+void TIM_Init(void)
 {
     TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure = { 0 };
 
@@ -144,15 +137,28 @@ void TIM3_Init(void)
 
     TIM_Cmd(TIM3, ENABLE);
     TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
+
+    RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE);
+
+    TIM_TimeBaseStructure.TIM_Prescaler = 144 - 1;
+    TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
+    TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+
+    TIM_TimeBaseInit(TIM4, &TIM_TimeBaseStructure);
+    TIM_Cmd(TIM4, ENABLE);
+
 }
 
-//uint64_t numpCounter = 0;
-//uint64_t errTVRS, errNUMP;
-//bool warning=false;
+uint32_t numpCounterRes;
+volatile uint32_t numpCounter = 0;
+
+volatile uint32_t vziLenght[6];
+
+RecievedFrameData recievedFrameDataSaved;
 
 volatile bool flagSendFdk = 0;
-volatile bool flagSendRdy = 0;
-bool flagSetHeterodine = 0;
+volatile bool flagSendRdy = 1;
+volatile bool flagSetHeterodine = 0;
 int main(void)
 {
 	SystemCoreClockUpdate();
@@ -175,14 +181,12 @@ int main(void)
 	LFM_WriteStartupData();
 	ETHERNET_Init();
 
-    TIM3_Init();
+    TIM_Init();
     INT_Init();
 
     NVIC_SetPriority(TIM3_IRQn,     (4<<5) | (0x01<<4));/* Group priority 3, lower overall priority */
     NVIC_SetPriority(ETH_IRQn,      (3<<5) | (0x01<<4));
-    //NVIC_SetPriority(EXTI15_10_IRQn,(2<<5) | (0x01<<4));
     NVIC_SetPriority(EXTI0_IRQn,    (0<<5) | (0x01<<4));
-    //NVIC_SetPriority(SPI3_IRQn,     (1<<5) | (0x01<<4));/* Group priority 0, overall priority is higher */
 
     printf("NVIC priorities SPI3: %x, EXTI: %x, ETH: %x, TIM3: %x\r\n",
             NVIC->IPRIOR[SPI3_IRQn], NVIC->IPRIOR[EXTI0_IRQn], NVIC->IPRIOR[ETH_IRQn], NVIC->IPRIOR[TIM3_IRQn]);
@@ -193,19 +197,8 @@ int main(void)
 
     Delay_Ms(2000);
 
-//    bool warningWritten = false;
-
 	while(1)
     {
-//	    if(!warningWritten)
-//	    {
-//	        if(warning)
-//            {
-//	            warningWritten = true;
-//	            printf("TVRS and NUMP error: %d %d", errTVRS, errNUMP);
-//            }
-//	    }
-
         ETHDRV_MainTask();
 
         if(flagSetHeterodine && CommFIFO_Count()>0)
@@ -214,17 +207,17 @@ int main(void)
             flagSetHeterodine = 0;
         }
 
-        while(EthFIFO_Count()>0){
+        if(EthFIFO_Count()>0){
             RecievedDataPtr_t* data = EthFIFO_GetData();
-//            printf("rec data:%d bytes\r\n", data->frameLength);
-//            printf("data:%x\r\n", data->bufferPtr);
-
 
             if(data->frameLength>0)
             {
-    //            printf("Recieved frame length: %d\r\n", recievedFrameData.frameLength);
-                RecievedFrameData recievedFrameDataSaved;
-                memcpy(&recievedFrameDataSaved, data->bufferPtr, data->frameLength);
+                uint16_t frameLength = data->frameLength;
+
+                if(frameLength > RECIEVED_FRAME_BUFFER_SIZE) frameLength = RECIEVED_FRAME_BUFFER_SIZE;
+
+                memcpy(&recievedFrameDataSaved, data->bufferPtr, frameLength);
+                recievedFrameDataSaved.frameLength = frameLength;
 
                 uint16_t frameType = recievedFrameDataSaved.frameData[POS_FRAME_TYPE_HW]<<8 | recievedFrameDataSaved.frameData[POS_FRAME_TYPE_LW];
                 uint8_t ipProtocolType = recievedFrameDataSaved.frameData[POS_PROTOCOL];
@@ -287,36 +280,45 @@ void TIM3_IRQHandler()
 
 void EXTI0_IRQHandler(void)
 {
-//    numpCounter++;
+    EXTI_ClearITPendingBit(EXTI_Line0);
+
+    if(TIM4->CNT < 100) return;
+
+    vziLenght[0] = vziLenght[1];
+    vziLenght[1] = vziLenght[2];
+    vziLenght[2] = vziLenght[3];
+    vziLenght[3] = vziLenght[4];
+    vziLenght[4] = vziLenght[5];
+    vziLenght[5] = __builtin_bswap32(TIM4->CNT);
+    TIM4->CNT = 0;
+
+
+    numpCounter++;
+    numpCounterRes = __builtin_bswap32(numpCounter);
+
     actualComm = CommFIFO_GetData();
 
     if(actualComm)
     {
-        GPIO_SetBits(pinVC1.port, pinVC1.pin);
+//        GPIO_SetBits(pinVC1.port, pinVC1.pin);
 
         HET_SetFilters(actualComm->rcvdFrame.NKCH);
 
-//        if(numpCounter != actualComm->rcvdFrame.TVRS)
-//        {
-//            warning = true;
-//            errTVRS = actualComm->rcvdFrame.TVRS;
-//            errNUMP = numpCounter;
-//        }
 
         // зг3здзв03
         if(actualComm->rcvdFrame.NKCH < 36)
         {
-//            GPIO_SetBits(pinVC1.port, pinVC1.pin);
+            GPIO_SetBits(pinVC1.port, pinVC1.pin);
             GPIO_SetBits(pinVC2.port, pinVC2.pin);
         }
         else if(actualComm->rcvdFrame.NKCH >= 36 && actualComm->rcvdFrame.NKCH < 51)
         {
-//            GPIO_ResetBits(pinVC1.port, pinVC1.pin);
+            GPIO_ResetBits(pinVC1.port, pinVC1.pin);
             GPIO_SetBits(pinVC2.port, pinVC2.pin);
         }
         else
         {
-//            GPIO_SetBits(pinVC1.port, pinVC1.pin);
+            GPIO_SetBits(pinVC1.port, pinVC1.pin);
             GPIO_ResetBits(pinVC2.port, pinVC2.pin);
         }
 
@@ -340,7 +342,7 @@ void EXTI0_IRQHandler(void)
             GPIO_ResetBits(pinVgNeg2.port, pinVgNeg2.pin);
             break;
         }
-        case PS_HUM:
+        case PS_NOISE:
         {
             GPIO_ResetBits(pinHumOn.port, pinHumOn.pin);
             GPIO_ResetBits(pinHumSW.port, pinHumSW.pin);
@@ -348,7 +350,7 @@ void EXTI0_IRQHandler(void)
             GPIO_ResetBits(pinVgNeg2.port, pinVgNeg2.pin);
             break;
         }
-        case PS_LCM:
+        case PS_LFM:
         {
             GPIO_SetBits(pinHumOn.port, pinHumOn.pin);
             GPIO_SetBits(pinHumSW.port, pinHumSW.pin);
@@ -362,10 +364,9 @@ void EXTI0_IRQHandler(void)
 
         HET_UpdateIO();
         flagSetHeterodine = 1;
+
+        actualComm = 0;
     }
 
-//    printf("used nk4:%d\r\n", actualComm->NKCH);
-
-    GPIO_ResetBits(pinVC1.port, pinVC1.pin);
-    EXTI_ClearITPendingBit(EXTI_Line0);
+//    GPIO_ResetBits(pinVC1.port, pinVC1.pin);
 }

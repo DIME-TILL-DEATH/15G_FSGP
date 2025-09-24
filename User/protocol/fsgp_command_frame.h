@@ -236,7 +236,8 @@ typedef struct
    //word 43, [32:0]
    uint32_t timestamp_lw;
 
-   uint32_t reservedEnd[4];
+   uint32_t testNumpCounter;
+   uint32_t reservedEnd[3];
 }FSGP_Command_Frame;
 
 #endif /* USER_PROTOCOL_FSGP_COMMAND_FRAME_H_ */

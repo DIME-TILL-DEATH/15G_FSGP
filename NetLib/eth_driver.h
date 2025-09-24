@@ -111,9 +111,10 @@
     }\
 }while(0)
 
+#define RECIEVED_FRAME_BUFFER_SIZE 512
 typedef struct
 {
-    uint8_t frameData[512];
+    uint8_t frameData[RECIEVED_FRAME_BUFFER_SIZE];
     uint16_t frameLength;
 }RecievedFrameData;
 

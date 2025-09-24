@@ -14,6 +14,7 @@
 #include "debug.h"
 #include "eth_driver.h"
 
+
 void ETHDRV_Configuration(uint8_t *macAddr);
 uint32_t ETHDRV_RegInit(ETH_InitTypeDef* ETH_InitStruct, uint16_t PHYAddress);
 
@@ -30,7 +31,6 @@ uint32_t volatile LocalTime;
 ETH_DMADESCTypeDef *pDMARxSet;
 ETH_DMADESCTypeDef *pDMATxSet;
 
-//RecievedFrameData recievedFrameData;
 //********************************************************************************
 
 #if(PHY_MODE == USE_10M_BASE)
@@ -441,6 +441,12 @@ void ETHDRV_PHYLink( void )
         }
 
         printf("Link established, start ETH\r\n");
+
+        uint16_t phyBasicControl = ETH_ReadPHYRegister(gPHYAddress, PHY_BCR);
+        uint16_t phyBasicStatus = ETH_ReadPHYRegister(gPHYAddress, PHY_BSR);
+
+        printf("PHY control: 0x%x, status: 0x%x\r\n", phyBasicControl, phyBasicStatus);
+
         ETH_Start( );
     }
 #endif
@@ -522,6 +528,9 @@ void ETHDRV_Configuration(uint8_t *macAddr)
 #else
     ETH_InitStructure.ETH_Speed = ETH_Speed_100M;
 #endif
+    ETH_InitStructure.ETH_InterFrameGap = ETH_InterFrameGap_40Bit;
+    ETH_InitStructure.ETH_Mode = ETH_Mode_FullDuplex;
+
     ETH_InitStructure.ETH_AutoNegotiation = ETH_AutoNegotiation_Enable ;
     ETH_InitStructure.ETH_LoopbackMode = ETH_LoopbackMode_Disable;
     ETH_InitStructure.ETH_RetryTransmission = ETH_RetryTransmission_Disable;
@@ -557,7 +566,8 @@ void ETHDRV_Configuration(uint8_t *macAddr)
 #else
 
     /* Enable the Ethernet Rx Interrupt */
-    ETH_DMAITConfig(ETH_DMA_IT_NIS | ETH_DMA_IT_R | ETH_DMA_IT_T, ENABLE);
+//    ETH_DMAITConfig(ETH_DMA_IT_NIS | ETH_DMA_IT_R | ETH_DMA_IT_T, ENABLE);
+    ETH_DMAITConfig(ETH_DMA_IT_NIS | ETH_DMA_IT_R, ENABLE);
 #endif
 }
 
@@ -695,8 +705,8 @@ uint32_t ETH_TxPktChainMode(uint16_t len, uint8_t *pBuff)
     return ETH_SUCCESS;
 }
 
-#define ETH_BUFFER_SIZE 24
-uint8_t eth_buf_wr_index, eth_buf_rd_index, eth_buf_counter;
+#define ETH_BUFFER_SIZE ETH_RXBUFNB
+volatile uint8_t eth_buf_wr_index, eth_buf_rd_index, eth_buf_counter;
 RecievedDataPtr_t eth_buf[ETH_BUFFER_SIZE];
 
 void EthFIFO_Init()
@@ -759,7 +769,7 @@ void ETHDRV_ETHIsr(void)
                 ETH->DMARPDR = 0;
             }
 
-            ETH_DMAClearITPendingBit(ETH_DMA_IT_R);
+//            ETH_DMAClearITPendingBit(ETH_DMA_IT_R);
 
             /* Check if the descriptor is owned by the ETHERNET DMA (when set) or CPU (when reset) */
             if(DMARxDescToGet->Status & ETH_DMARxDesc_OWN)
@@ -769,6 +779,8 @@ void ETHDRV_ETHIsr(void)
             }
             else
             {
+                ETH_DMAClearITPendingBit(ETH_DMA_IT_R);
+
                 RecievedDataPtr_t data;
 
                 if(!(DMARxDescToGet->Status & ETH_DMARxDesc_ES)  &&
@@ -778,19 +790,11 @@ void ETHDRV_ETHIsr(void)
                     data.frameLength = ((DMARxDescToGet->Status & ETH_DMARxDesc_FL) >> ETH_DMARXDESC_FRAME_LENGTHSHIFT);
                     data.bufferPtr = (uint32_t*)DMARxDescToGet->Buffer1Addr;
 
-//                    recievedFrameData.frameLength = ((DMARxDescToGet->Status & ETH_DMARxDesc_FL) >> ETH_DMARXDESC_FRAME_LENGTHSHIFT);
-//                    if(recievedFrameData.frameLength>512) recievedFrameData.frameLength = 512;
-//
-//
-//                    memcpy(recievedFrameData.frameData, (uint32_t*)DMARxDescToGet->Buffer1Addr, recievedFrameData.frameLength);
-
-//                    printf("rec data:%d bytes\r\n", data.frameLength);
-//                    printf("data:%x\r\n", data.bufferPtr);
-
                     EthFIFO_PutData(data);
                 }
 
                 DMARxDescToGet->Status = ETH_DMARxDesc_OWN;
+
                 /* Update the ETHERNET DMA global Rx descriptor with next Rx descriptor */
                 /* Chained Mode */
                 /* Selects the next DMA Rx descriptor list for next buffer to read */

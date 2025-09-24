@@ -2,6 +2,11 @@
 
 #include "ethernet.h"
 
+#include "control_pin.h"
+
+#include "command_fifo.h"
+#include "frame_parser.h"
+
 #include "veeprom.h"
 #include "frame_parser.h"
 
@@ -141,8 +146,6 @@ void ETHERNET_ParseArpFrame(const RecievedFrameData* frame)
 
     memcpy(parsedFrame.rawData, frame, ARP_FULL_HEADER_SIZE);
 
-//    printf("recieved ARP\r\n");
-
     if(compareArrays(parsedFrame.structData.targetIpAdr, IPAddr, 4))
     {
         if(parsedFrame.structData.opCode == __builtin_bswap16(ARP_OPCODE_REQUEST))
@@ -161,6 +164,7 @@ void ETHERNET_ParseArpFrame(const RecievedFrameData* frame)
             memcpy(answerFrame.structData.senderHwAdr, MACAddr, 6);
 
             ETH_TxPktChainMode(ARP_FULL_HEADER_SIZE, answerFrame.rawData);
+            return;
         }
 
         if(parsedFrame.structData.opCode == __builtin_bswap16(ARP_OPCODE_REPLY)){
@@ -179,10 +183,6 @@ void ETHERNET_ParseArpFrame(const RecievedFrameData* frame)
                 printf("Terminal arp reply\r\n");
                 memcpy(terminalMACAddr, parsedFrame.structData.senderHwAdr, 6);
             }
-
-//            printf("BOS MAC: %X:%X:%X:%X:%X:%X\r\n", bosMACAddr[0], bosMACAddr[1], bosMACAddr[2], bosMACAddr[3], bosMACAddr[4], bosMACAddr[5]);
-//            printf("MCDO MAC: %X:%X:%X:%X:%X:%X\r\n", mcdoMACAddr[0], mcdoMACAddr[1], mcdoMACAddr[2], mcdoMACAddr[3], mcdoMACAddr[4], mcdoMACAddr[5]);
-//            printf("TERM MAC: %X:%X:%X:%X:%X:%X\r\n", terminalMACAddr[0], terminalMACAddr[1], terminalMACAddr[2], terminalMACAddr[3], terminalMACAddr[4], terminalMACAddr[5]);
         }
     }
 }
@@ -247,6 +247,7 @@ void ETHERNET_ParseUdpFrame(const RecievedFrameData* frame)
         memset(answer, 0, 512);
 
         // check port
+
         parseFrame(&(frame->frameData[UDP_PAYLOAD_POSITION]), __builtin_bswap16(parsedFrameHeader.structData.udpLength) - UDP_ONLY_HEADER_SIZE,
                 &(answer[UDP_PAYLOAD_POSITION]),
                 &outDataLen);
@@ -309,10 +310,8 @@ void ETHERNET_SendArpRequest(uint8_t requestIpAdr[4]){
     memcpy(arpFrame.structData.senderHwAdr, MACAddr, 6);
 
     while(!ETH_TxPktChainMode(ARP_FULL_HEADER_SIZE, arpFrame.rawData));
-
 }
 
-uint8_t rawFdkFrame[512] = {0};
 void ETHERNET_SendFdkFrame()
 {
     uint8_t dummyMACAddr[6] = {0};
@@ -321,8 +320,8 @@ void ETHERNET_SendFdkFrame()
     {
         UDPFrame fdkFrameHeader;
 
-//        uint8_t rawFdkFrame[512] = {0};
-        uint16_t payloadLen;
+        uint8_t rawFdkFrame[512] = {0};
+        uint16_t payloadLen = 0;
 
         getFdkFramePayload(&(rawFdkFrame[UDP_PAYLOAD_POSITION]), &payloadLen);
 
@@ -361,7 +360,7 @@ void ETHERNET_SendFdkFrame()
         memcpy(rawFdkFrame, fdkFrameHeader.rawData, UDP_FULL_HEADER_SIZE);
 
 
-//        ETH_TxPktChainMode(totalAnswerLen, rawFdkFrame);
+        ETH_TxPktChainMode(totalAnswerLen, rawFdkFrame);
     }
     else
     {
@@ -372,8 +371,6 @@ void ETHERNET_SendFdkFrame()
 void ETHERNET_SendRdyFrame()
 {
     uint8_t dummyMACAddr[6] = {0};
-
-//    ETHERNET_SendArpRequest(terminalIPAddr);
 
     if(!compareArrays(mcdoMACAddr, dummyMACAddr, 6))
     {
