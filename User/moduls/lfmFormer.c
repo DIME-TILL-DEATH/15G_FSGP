@@ -1078,12 +1078,12 @@ DdsRegisterData_t LFM_GetPackData(const FSGP_Command_Frame* dataFrame)
 
     switch(dataFrame->KP)
     {
-        case 149:
-        {
-            if(dataFrame->NLCHM) outputData = shortPack_24_184_pos;
-            else outputData = shortPack_24_184_neg;
-            break;
-        }
+     //    case 149:
+     //    {
+     //        if(dataFrame->NLCHM) outputData = shortPack_24_184_pos;
+     //        else outputData = shortPack_24_184_neg;
+     //        break;
+     //    }
 
         default: outputData = LFM_CalcPackData(packData[dataFrame->KP], fStart, fStop, 0, 0);
     }
