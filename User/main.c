@@ -6,17 +6,17 @@
 *******************************************/
 
 #include "string.h"
+
 #include "debug.h"
 
-#include "uart.h"
 #include "ethernet.h"
 
 #include "lfmFormer.h"
 #include "hetFormer.h"
-#include "spi_heterodine.h"
+
+#include "control_pin.h"
 
 #include "command_fifo.h"
-#include "frame_parser.h"
 
 void EXTI0_IRQHandler(void)  __attribute__((interrupt("WCH-Interrupt-fast")));
 void TIM2_IRQHandler(void)  __attribute__((interrupt(/*"WCH-Interrupt-fast"*/)));

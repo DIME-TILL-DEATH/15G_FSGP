@@ -4,12 +4,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "debug.h"
-#include "dds1508.h"
-
 #include "fsgp_command_frame.h"
 
-#include "pack_data.h"
 
 typedef enum
 {
@@ -23,7 +19,7 @@ typedef struct
 {
     uint8_t impNum;
     uint16_t impLength;   // §¥§Ú§ã§Ü§â§Ö§ä§à§Ó §é§Ñ§ã§ä§à§ä§í
-    uint16_t period;      // §¥§Ú§ã§Ü§â§Ö§ä§à§Ó §é§Ñ§ã§ä§à§ä§í
+    uint16_t period;      // §¥§Ú§ã§Ü§â§Ö§ä§à§Ó §é§Ñ§ã§ä§à§ä§í   
 }LfmPack_t;
 
 typedef enum

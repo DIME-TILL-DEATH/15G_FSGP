@@ -2,16 +2,18 @@
 
 #include "lfm_fifo.h"
 
+#include "pack_data.h"
+
 #define STAGE1_LENGTH 0 * 24
 #define STAGE2_LENGTH 6 * 24 //4 * 24
 
 GPIO_TypeDef* DATA_PORT;
 ControlPin_t PIN_CS, PIN_ADR, PIN_WR, PIN_RD;
 
-DdsRegisterData_t shortPack_24_184_pos;
-DdsRegisterData_t shortPack_24_184_neg;
-DdsRegisterData_t shortPack_24_216_pos;
-DdsRegisterData_t shortPack_24_216_neg;
+// DdsRegisterData_t shortPack_24_184_pos;
+// DdsRegisterData_t shortPack_24_184_neg;
+// DdsRegisterData_t shortPack_24_216_pos;
+// DdsRegisterData_t shortPack_24_216_neg;
 
 static inline void LFM_WriteReg(uint16_t address, uint16_t value);
 
@@ -1013,55 +1015,43 @@ void TIM6_IRQHandler(void)  __attribute__((interrupt("WCH-Interrupt-fast")));
  *******************************************************/
 DdsRegisterData_t LFM_CalcPackData(LfmPack_t pack, float fStart, float fStop, float delay, float dopplerFreq)
 {
-    DdsRegisterData_t outputData = {0};
+     DdsRegisterData_t outputData = {0};
 
-    uint64_t freqStart;
+     uint64_t freqStart = DDS1508_CalcFreqWord(fStart+dopplerFreq);
+     uint64_t dF = DDS1508_CalcDFWord(fStart, fStop, pack.impLength);
 
-    uint64_t dF;
-//    if(isPositiveLfm)
-//    {
-        freqStart = DDS1508_CalcFreqWord(fStart+dopplerFreq);
-        dF = DDS1508_CalcDFWord(fStart, fStop, pack.impLength);
+     outputData.startF[0] = (freqStart & 0xFFFF);
+     outputData.startF[1] = (freqStart & 0xFFFF0000) >> 16;
+     outputData.startF[2] = (freqStart & 0xFFFF00000000) >> 32;
 
-//    }
-//    else
-//    {
-//        freqStart = DDS1508_CalcFreqWord(FSTOP+dopplerFreq);
-//        dF = DDS1508_CalcDFWord(FSTOP, FSTART, pack.impLength);
-//    }
+     outputData.deltaF[0] = ((uint64_t)dF & 0xFFFF);
+     outputData.deltaF[1] = ((uint64_t)dF & 0xFFFF0000) >> 16;
+     outputData.deltaF[2] = ((uint64_t)dF & 0xFFFF00000000) >> 32;
 
-    outputData.startF[0] = (freqStart & 0xFFFF);
-    outputData.startF[1] = (freqStart & 0xFFFF0000) >> 16;
-    outputData.startF[2] = (freqStart & 0xFFFF00000000) >> 32;
+     double_t stage1_length = STAGE1_LENGTH + delay;
+     uint64_t tph1 = DDS1508_CalcTWord(stage1_length);
+     outputData.tph1[0] = (tph1 & 0xFFFF);
+     outputData.tph1[1] = (tph1 & 0xFFFF0000) >> 16;
+     outputData.tph1[2] = (tph1 & 0xFFFF00000000) >> 32;
 
-    outputData.deltaF[0] = ((uint64_t)dF & 0xFFFF);
-    outputData.deltaF[1] = ((uint64_t)dF & 0xFFFF0000) >> 16;
-    outputData.deltaF[2] = ((uint64_t)dF & 0xFFFF00000000) >> 32;
+     double_t stage2_length = STAGE2_LENGTH;
+     uint64_t tph2 = DDS1508_CalcTWord(stage2_length);
+     outputData.tph2[0] = (tph2 & 0xFFFF);
+     outputData.tph2[1] = (tph2 & 0xFFFF0000) >> 16;
+     outputData.tph2[2] = (tph2 & 0xFFFF00000000) >> 32;
 
-    double_t stage1_length = STAGE1_LENGTH + delay;
-    uint64_t tph1 = DDS1508_CalcTWord(stage1_length);
-    outputData.tph1[0] = (tph1 & 0xFFFF);
-    outputData.tph1[1] = (tph1 & 0xFFFF0000) >> 16;
-    outputData.tph1[2] = (tph1 & 0xFFFF00000000) >> 32;
+     uint64_t tph3 = DDS1508_CalcTWord(pack.impLength);
+     outputData.tph3[0] = (tph3 & 0xFFFF);
+     outputData.tph3[1] = (tph3 & 0xFFFF0000) >> 16;
+     outputData.tph3[2] = (tph3 & 0xFFFF00000000) >> 32;
 
-    double_t stage2_length = STAGE2_LENGTH;
-    uint64_t tph2 = DDS1508_CalcTWord(stage2_length);
-    outputData.tph2[0] = (tph2 & 0xFFFF);
-    outputData.tph2[1] = (tph2 & 0xFFFF0000) >> 16;
-    outputData.tph2[2] = (tph2 & 0xFFFF00000000) >> 32;
+     double_t lengthStage4 = pack.period - pack.impLength - stage1_length - stage2_length;
+     uint64_t tph4 = DDS1508_CalcTWord(lengthStage4);
+     outputData.tph4[0] = (tph4 & 0xFFFF);
+     outputData.tph4[1] = (tph4 & 0xFFFF0000) >> 16;
+     outputData.tph4[2] = (tph4 & 0xFFFF00000000) >> 32;
 
-    uint64_t tph3 = DDS1508_CalcTWord(pack.impLength);
-    outputData.tph3[0] = (tph3 & 0xFFFF);
-    outputData.tph3[1] = (tph3 & 0xFFFF0000) >> 16;
-    outputData.tph3[2] = (tph3 & 0xFFFF00000000) >> 32;
-
-    double_t lengthStage4 = pack.period - pack.impLength - stage1_length - stage2_length;
-    uint64_t tph4 = DDS1508_CalcTWord(lengthStage4);
-    outputData.tph4[0] = (tph4 & 0xFFFF);
-    outputData.tph4[1] = (tph4 & 0xFFFF0000) >> 16;
-    outputData.tph4[2] = (tph4 & 0xFFFF00000000) >> 32;
-
-    return outputData;
+     return outputData;
 }
 
 DdsRegisterData_t LFM_GetPackData(const FSGP_Command_Frame* dataFrame)
@@ -1122,11 +1112,11 @@ void LFM_Init()
 
     LfmFIFO_Init();
 
-    shortPack_24_184_pos = LFM_CalcPackData(packData[19], lfmBand[4].fStart, lfmBand[4].fStop, 0, 0);
-    shortPack_24_184_neg = LFM_CalcPackData(packData[19], lfmBand[4].fStop, lfmBand[4].fStart, 0, 0);
+//     shortPack_24_184_pos = LFM_CalcPackData(packData[19], lfmBand[4].fStart, lfmBand[4].fStop, 0, 0);
+//     shortPack_24_184_neg = LFM_CalcPackData(packData[19], lfmBand[4].fStop, lfmBand[4].fStart, 0, 0);
 
-    shortPack_24_216_pos = LFM_CalcPackData(packData[151], lfmBand[4].fStart, lfmBand[4].fStop, 0, 0);
-    shortPack_24_216_neg = LFM_CalcPackData(packData[151], lfmBand[4].fStop, lfmBand[4].fStart, 0, 0);
+//     shortPack_24_216_pos = LFM_CalcPackData(packData[151], lfmBand[4].fStart, lfmBand[4].fStop, 0, 0);
+//     shortPack_24_216_neg = LFM_CalcPackData(packData[151], lfmBand[4].fStop, lfmBand[4].fStart, 0, 0);
 }
 
 /*

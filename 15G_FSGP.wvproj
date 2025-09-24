@@ -11,7 +11,8 @@
 			"description": "=Website: http://www.wch.cn/products/CH32V307.html?\\nROM(byte): 288K, SRAM(byte): 32K, CHIP PINS: 100, GPIO PORTS: 80.\\nWCH CH32V3 series of mainstream MCUs covers the needs of a large variety of applications in the industrial,medical and consumer markets. High performance with first-class peripherals and low-power,low-voltage operation is paired with a high level of integration at accessible prices with a simple architecture and easy-to-use tools.",
 			"link": "WCH-Link",
 			"peripheral_version": "=2.0",
-			"calibrateSupport": false
+			"calibrateSupport": false,
+			"calibrateCommand": ""
 		},
 		"linkedFolders": [],
 		"removedResources": [
@@ -67,17 +68,17 @@
 				},
 				"warnings": {
 					"check_syntax_only": false,
-					"pedantic": true,
+					"pedantic": false,
 					"pedantic_warnings_as_errors": false,
 					"inhibit_all_warnings": false,
 					"warn_on_various_unused_elements": true,
 					"warn_on_uninitialized_variables": true,
-					"enable_all_common_warnings": true,
-					"enable_extra_warnings": true,
-					"warn_on_undeclared_global_function": true,
-					"warn_on_implicit_conversions": true,
+					"enable_all_common_warnings": false,
+					"enable_extra_warnings": false,
+					"warn_on_undeclared_global_function": false,
+					"warn_on_implicit_conversions": false,
 					"warn_if_pointer_arthmetic": true,
-					"warn_if_padding_is_included": true,
+					"warn_if_padding_is_included": false,
 					"warn_if_shadowed_variable": false,
 					"warn_if_suspicious_logical_ops": false,
 					"warn_if_struct_is_returned": false,
@@ -334,7 +335,7 @@
 		"address": "0x08000000",
 		"target_path": "obj\\15G_FSGP.hex",
 		"clkSpeed": "High",
-		"debug_interface_mode": "",
+		"debug_interface_mode": "1-wire serial",
 		"erase": true,
 		"program": true,
 		"verify": true,
@@ -418,10 +419,8 @@
 			"ATTR_BUILD_BEFORE_LAUNCH_ATTR": 2,
 			"GdbServerAllocateConsole": true,
 			"GdbServerAllocateTelnetConsole": false,
-			"SkipDownloadBeforeDebug": false,
 			"StartGdbCLient": true,
-			"UPDATE_THREADLIST_ON_SUSPEND": false,
-			"DebugInRam": false
+			"UPDATE_THREADLIST_ON_SUSPEND": false
 		}
 	}
 }
