@@ -70,8 +70,8 @@ void parseFrame(const uint8_t* inData, uint32_t inDataLen, uint8_t* outData, uin
                 outData[FSGP_BUFFER_SIZE_LW_POS] = COMMAND_FIFO_SIZE;
                 outData[FSGP_QUEUE_SIZE_LW_POS] = CommFIFO_Count();
 
-                memcpy(&outData[47*4], &numpCounterRes, 4); // TEST
-                memcpy(&outData[41*4], &vziLenght[0], 4 * 6);
+                // memcpy(&outData[47*4], &numpCounterRes, 4); // TEST
+                // memcpy(&outData[41*4], &vziLenght[0], 4 * 6);
 
                 *outDataLen = inDataLen + 16;
             }

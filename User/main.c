@@ -282,19 +282,19 @@ void EXTI0_IRQHandler(void)
 {
     EXTI_ClearITPendingBit(EXTI_Line0);
 
-    if(TIM4->CNT < 100) return;
+    // if(TIM4->CNT < 100) return;
 
-    vziLenght[0] = vziLenght[1];
-    vziLenght[1] = vziLenght[2];
-    vziLenght[2] = vziLenght[3];
-    vziLenght[3] = vziLenght[4];
-    vziLenght[4] = vziLenght[5];
-    vziLenght[5] = __builtin_bswap32(TIM4->CNT);
-    TIM4->CNT = 0;
+    // vziLenght[0] = vziLenght[1];
+    // vziLenght[1] = vziLenght[2];
+    // vziLenght[2] = vziLenght[3];
+    // vziLenght[3] = vziLenght[4];
+    // vziLenght[4] = vziLenght[5];
+    // vziLenght[5] = __builtin_bswap32(TIM4->CNT);
+    // TIM4->CNT = 0;
 
 
-    numpCounter++;
-    numpCounterRes = __builtin_bswap32(numpCounter);
+    // numpCounter++;
+    // numpCounterRes = __builtin_bswap32(numpCounter);
 
     actualComm = CommFIFO_GetData();
 
@@ -336,6 +336,8 @@ void EXTI0_IRQHandler(void)
         }
         case PS_SIN:
         {
+
+            
             GPIO_SetBits(pinHumOn.port, pinHumOn.pin);
             GPIO_SetBits(pinHumSW.port, pinHumSW.pin);
             GPIO_SetBits(pinVgNeg1.port, pinVgNeg1.pin);
