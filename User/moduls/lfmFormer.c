@@ -20,7 +20,7 @@ static inline void LFM_WriteReg(uint16_t address, uint16_t value);
 LfmBand_t lfmBand[] =
 {
     {
-        .fStart = 309.5,
+        .fStart = 311.5,
         .fStop = 313.5
     },
 
@@ -854,6 +854,36 @@ LfmPack_t packData[PACK_COUNT+1] =
              .impNum = PACK160_IMP_NUM
         },
         {
+             .impLength = PACK161_IMP_LENGTH,
+             .period = PACK161_PERIOD,
+             .impNum = PACK161_IMP_NUM
+        },
+        {
+             .impLength = PACK162_IMP_LENGTH,
+             .period = PACK162_PERIOD,
+             .impNum = PACK162_IMP_NUM
+        },
+        {
+             .impLength = PACK163_IMP_LENGTH,
+             .period = PACK163_PERIOD,
+             .impNum = PACK163_IMP_NUM
+        },
+        {
+             .impLength = PACK164_IMP_LENGTH,
+             .period = PACK164_PERIOD,
+             .impNum = PACK164_IMP_NUM
+        },
+        {
+             .impLength = PACK165_IMP_LENGTH,
+             .period = PACK165_PERIOD,
+             .impNum = PACK165_IMP_NUM
+        },
+        {
+             .impLength = PACK166_IMP_LENGTH,
+             .period = PACK166_PERIOD,
+             .impNum = PACK166_IMP_NUM
+        },
+        {
              .impLength = PACK167_IMP_LENGTH,
              .period = PACK167_PERIOD,
              .impNum = PACK167_IMP_NUM
@@ -1200,7 +1230,9 @@ void LFM_SetPack(DdsRegisterData_t* ddsData)
     LFM_WriteReg(DDS1508_ADDR_CH1_dF_L, ddsData->deltaF[0]);
 
     LFM_WriteReg(DDS1508_ADDR_CH1_TPH3_L, ddsData->tph3[0]);
+
     LFM_WriteReg(DDS1508_ADDR_CH1_TPH4_L, ddsData->tph4[0]);
+    LFM_WriteReg(DDS1508_ADDR_CH1_TPH4_M, ddsData->tph4[1]);
 
     PIN_CS.port->BSHR = PIN_CS.pin;
 }
