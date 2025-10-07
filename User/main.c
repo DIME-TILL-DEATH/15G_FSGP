@@ -33,7 +33,7 @@ ControlPin_t pinVgNeg2;
 ControlPin_t pinVC1;
 ControlPin_t pinVC2;
 
-ControlPin_t pinComPs;
+ControlPin_t pinComPCH;
 
 
 void PIN_Init()
@@ -97,13 +97,17 @@ void PIN_Init()
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
     GPIO_Init(pinVgNeg2.port, &GPIO_InitStructure);
 
-    // ComPS
-    pinComPs.pin = GPIO_Pin_0;
-    pinComPs.port = GPIOC;
+    // Start with ZI on (switch to ZI)
+    GPIO_ResetBits(pinVgNeg1.port, pinVgNeg1.pin);
+    GPIO_SetBits(pinVgNeg2.port, pinVgNeg2.pin);
 
-    GPIO_InitStructure.GPIO_Pin = pinComPs.pin;
+    // ComPCH
+    pinComPCH.pin = GPIO_Pin_0;
+    pinComPCH.port = GPIOC;
+
+    GPIO_InitStructure.GPIO_Pin = pinComPCH.pin;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
-    GPIO_Init(pinComPs.port, &GPIO_InitStructure);
+    GPIO_Init(pinComPCH.port, &GPIO_InitStructure);
 }
 
 void INT_Init()
@@ -282,25 +286,10 @@ void EXTI0_IRQHandler(void)
 {
     EXTI_ClearITPendingBit(EXTI_Line0);
 
-    // if(TIM4->CNT < 100) return;
-
-    // vziLenght[0] = vziLenght[1];
-    // vziLenght[1] = vziLenght[2];
-    // vziLenght[2] = vziLenght[3];
-    // vziLenght[3] = vziLenght[4];
-    // vziLenght[4] = vziLenght[5];
-    // vziLenght[5] = __builtin_bswap32(TIM4->CNT);
-    // TIM4->CNT = 0;
-
-
-    // numpCounter++;
-    // numpCounterRes = __builtin_bswap32(numpCounter);
-
     actualComm = CommFIFO_GetData();
 
     if(actualComm)
     {
-//        GPIO_SetBits(pinVC1.port, pinVC1.pin);
 
         HET_SetFilters(actualComm->rcvdFrame.NKCH);
 
@@ -322,7 +311,7 @@ void EXTI0_IRQHandler(void)
             GPIO_ResetBits(pinVC2.port, pinVC2.pin);
         }
 
-        GPIO_WriteBit(pinComPs.port, pinComPs.pin, actualComm->rcvdFrame.ComPS);
+        GPIO_WriteBit(pinComPCH.port, pinComPCH.pin, actualComm->rcvdFrame.ComPCH);
 
         switch(actualComm->rcvdFrame.TipPS)
         {
@@ -336,8 +325,6 @@ void EXTI0_IRQHandler(void)
         }
         case PS_SIN:
         {
-
-            
             GPIO_SetBits(pinHumOn.port, pinHumOn.pin);
             GPIO_SetBits(pinHumSW.port, pinHumSW.pin);
             GPIO_SetBits(pinVgNeg1.port, pinVgNeg1.pin);
@@ -369,6 +356,4 @@ void EXTI0_IRQHandler(void)
 
         actualComm = 0;
     }
-
-//    GPIO_ResetBits(pinVC1.port, pinVC1.pin);
 }
