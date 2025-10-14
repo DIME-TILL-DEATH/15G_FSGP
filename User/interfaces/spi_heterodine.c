@@ -2,6 +2,7 @@
 #include <stdlib.h>
 
 #include "spi_heterodine.h"
+#include "control_pin.h"
 
 #define SPI_COMM_BUFFER_SIZE 16
 

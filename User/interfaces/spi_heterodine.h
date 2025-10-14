@@ -1,11 +1,8 @@
 #ifndef USER_INTERFACES_SPI_HETERODINE_H_
 #define USER_INTERFACES_SPI_HETERODINE_H_
 
-#include "debug.h"
-
+#include <stdint.h>
 #include <stdbool.h>
-
-#include "control_pin.h"
 
 #define AD9912_COMMAND_SIZE 2
 

@@ -1,7 +1,5 @@
 #include "dds1508.h"
 
-#include "debug.h"
-
 double_t freqDiscret = 800;
 double_t discret = 24;
 

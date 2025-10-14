@@ -1,18 +1,25 @@
+Vendor=WCH
+Toolchain=RISC-V
+Series=CH32V307
+RTOS=NoneOS
+CalibrateSupport=false
+CalibrateCommand=
+MCU=CH32V307VCT6
+Link=WCH-Link
+PeripheralVersion==2.0
+Description==Website: http://www.wch.cn/products/CH32V307.html?\nROM(byte): 288K, SRAM(byte): 32K, CHIP PINS: 100, GPIO PORTS: 80.\nWCH CH32V3 series of mainstream MCUs covers the needs of a large variety of applications in the industrial,medical and consumer markets. High performance with first-class peripherals and low-power,low-voltage operation is paired with a high level of integration at accessible prices with a simple architecture and easy-to-use tools.
 Mcu Type=CH32V30x
 Address=0x08000000
+Target Path=obj\15G_FSGP.hex
+Exe Path=
+Exe Arguments=
+CLKSpeed=1
+DebugInterfaceMode=0
 Erase All=true
 Program=true
 Verify=true
 Reset=true
-
-Vendor=WCH
-Link=WCH-Link
-Toolchain=RISC-V
-Series=CH32V307
-RTOS=NoneOS
-Description=Website: http://www.wch.cn/products/CH32V307.html?\nROM(byte): 288K, SRAM(byte): 32K, CHIP PINS: 100, GPIO PORTS: 80.\nWCH CH32V3 series of mainstream MCUs covers the needs of a large variety of applications in the industrial,medical and consumer markets. High performance with first-class peripherals and low-power,low-voltage operation is paired with a high level of integration at accessible prices with a simple architecture and easy-to-use tools.
-
-PeripheralVersion=2.0
-MCU=CH32V307VCT6
-CLKSpeed=1
-Target Path=obj\15G_FSGP.hex
+SDIPrintf=false
+Disable Power Output=false
+Clear CodeFlash=false
+Disable Code-Protect=false

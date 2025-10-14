@@ -4,17 +4,22 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "debug.h"
-#include "dds1508.h"
+#include "fsgp_command_frame.h"
 
-#include "pack_data.h"
+
+typedef enum
+{
+    PS_OFF = 0,
+    PS_SIN,
+    PS_NOISE,
+    PS_LFM
+}PILOT_type_t;
 
 typedef struct
 {
     uint8_t impNum;
     uint16_t impLength;   // §¥§Ú§ã§Ü§â§Ö§ä§à§Ó §é§Ñ§ã§ä§à§ä§í
-    uint16_t period;      // §¥§Ú§ã§Ü§â§Ö§ä§à§Ó §é§Ñ§ã§ä§à§ä§í
-    uint8_t sign;       // 0 - §á§à§Ý§à§Ø§Ú§ä§Ö§Ý§î§ß§í§Û §ß§Ñ§Ü§Ý§à§ß, 1-§à§ä§â§Ú§è§Ñ§ä§Ö§Ý§î§ß§í§Û
+    uint16_t period;      // §¥§Ú§ã§Ü§â§Ö§ä§à§Ó §é§Ñ§ã§ä§à§ä§í   
 }LfmPack_t;
 
 typedef enum
@@ -37,11 +42,22 @@ typedef struct
     uint16_t deltaF[3];
 }DdsRegisterData_t;
 
+typedef struct
+{
+    float fStart;
+    float fStop;
+}LfmBand_t;
+
+extern LfmPack_t packData[];
+extern LfmBand_t lfmBand[];
+
 void LFM_Init();
 void LFM_WriteStartupData();
-void LFM_SetPack(uint8_t packNumber);
-void LFM_SetPackBuffered(uint8_t packNumber);
+void LFM_SetPack(DdsRegisterData_t* ddsData);
+void LFM_SetPackBuffered(DdsRegisterData_t* ddsData);
 //void LFM_RecalcImitData(double_t delay, double_t dopplerFreq);
+DdsRegisterData_t LFM_CalcPackData(LfmPack_t pack, float fStart, float fStop, float delay, float dopplerFreq);
+DdsRegisterData_t LFM_GetPackData(const FSGP_Command_Frame* dataFrame);
 
 void LFM_SetStage2();
 

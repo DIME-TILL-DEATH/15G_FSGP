@@ -1,8 +1,12 @@
 #include "command_fifo.h"
 
-uint8_t buf_wr_index, buf_rd_index, buf_counter;
-FSGP_Command_Frame command_buf[COMMAND_FIFO_SIZE];
-FSGP_Command_Frame zeroPack = {0};
+volatile uint8_t buf_wr_index;
+volatile uint8_t buf_rd_index;
+volatile uint8_t buf_counter;
+FSGP_Command_Data command_buf[COMMAND_FIFO_SIZE];
+FSGP_Command_Data zeroPack = {0};
+
+FSGP_Command_Data* actualComm = 0;
 
 void CommFIFO_Init()
 {
@@ -10,10 +14,11 @@ void CommFIFO_Init()
     buf_rd_index = 0;
     buf_counter = 0;
 
-    zeroPack.NKCH = 3;
+    zeroPack.rcvdFrame.NKCH = 3;
 }
 
-bool CommFIFO_PutData(FSGP_Command_Frame new_data)
+bool protectFlag = false;
+bool CommFIFO_PutData(FSGP_Command_Data new_data)
 {
     if(buf_counter < COMMAND_FIFO_SIZE)
     {
@@ -27,9 +32,9 @@ bool CommFIFO_PutData(FSGP_Command_Frame new_data)
     else return false;
 }
 
-FSGP_Command_Frame* CommFIFO_GetData()
+FSGP_Command_Data* CommFIFO_GetData()
 {
-    FSGP_Command_Frame* data;
+    FSGP_Command_Data* data;
 
     if(buf_counter == 0)
     {
@@ -46,7 +51,17 @@ FSGP_Command_Frame* CommFIFO_GetData()
     return data;
 }
 
-FSGP_Command_Frame CommFIFO_PeekData()
+FSGP_Command_Data CommFIFO_LastData()
+{
+    uint8_t tmpIndex;
+
+    if(buf_wr_index == 0) tmpIndex = COMMAND_FIFO_SIZE-1;
+    else tmpIndex = buf_wr_index - 1;
+
+    return command_buf[tmpIndex];
+}
+
+FSGP_Command_Data CommFIFO_PeekData()
 {
     return command_buf[buf_rd_index];
 }

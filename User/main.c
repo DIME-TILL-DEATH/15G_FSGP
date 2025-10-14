@@ -6,22 +6,23 @@
 *******************************************/
 
 #include "string.h"
+
 #include "debug.h"
 
-#include "uart.h"
 #include "ethernet.h"
 
 #include "lfmFormer.h"
 #include "hetFormer.h"
-#include "spi_heterodine.h"
+
+#include "control_pin.h"
 
 #include "command_fifo.h"
-#include "frame_parser.h"
 
 void EXTI0_IRQHandler(void)  __attribute__((interrupt("WCH-Interrupt-fast")));
+void TIM2_IRQHandler(void)  __attribute__((interrupt(/*"WCH-Interrupt-fast"*/)));
+void TIM3_IRQHandler(void)  __attribute__((interrupt(/*"WCH-Interrupt-fast"*/)));
 
 bool ledState=0;
-uint8_t framesCounter = 0;
 
 // ----> to pilot_signal.h OR hum.h
 ControlPin_t pinHumSW;
@@ -32,13 +33,8 @@ ControlPin_t pinVgNeg2;
 ControlPin_t pinVC1;
 ControlPin_t pinVC2;
 
-typedef enum
-{
-    PS_OFF = 0,
-    PS_SIN,
-    PS_HUM,
-    PS_LCM
-}PILOT_type_t;
+ControlPin_t pinComPCH;
+
 
 void PIN_Init()
 {
@@ -51,7 +47,7 @@ void PIN_Init()
 
     // NP
     GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU; //GPIO_Mode_IN_FLOATING;
     GPIO_Init(GPIOA, &GPIO_InitStructure);
 
     // HUM
@@ -86,6 +82,7 @@ void PIN_Init()
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
     GPIO_Init(pinVC2.port, &GPIO_InitStructure);
 
+    // Vg
     pinVgNeg1.pin = GPIO_Pin_3;
     pinVgNeg1.port = GPIOB;
 
@@ -99,6 +96,18 @@ void PIN_Init()
     GPIO_InitStructure.GPIO_Pin = pinVgNeg2.pin;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
     GPIO_Init(pinVgNeg2.port, &GPIO_InitStructure);
+
+    // Start with ZI on (switch to ZI)
+    GPIO_ResetBits(pinVgNeg1.port, pinVgNeg1.pin);
+    GPIO_SetBits(pinVgNeg2.port, pinVgNeg2.pin);
+
+    // ComPCH
+    pinComPCH.pin = GPIO_Pin_0;
+    pinComPCH.port = GPIOC;
+
+    GPIO_InitStructure.GPIO_Pin = pinComPCH.pin;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+    GPIO_Init(pinComPCH.port, &GPIO_InitStructure);
 }
 
 void INT_Init()
@@ -116,53 +125,72 @@ void INT_Init()
     NVIC_EnableIRQ(EXTI0_IRQn);
 }
 
-void TIM3_Init(void)
+void TIM_Init(void)
 {
     TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure = { 0 };
 
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
 
-    TIM_TimeBaseStructure.TIM_Period = SystemCoreClock;
-    TIM_TimeBaseStructure.TIM_Prescaler = 10000; //2880;
-    TIM_TimeBaseStructure.TIM_ClockDivision = 0;
+    TIM_TimeBaseStructure.TIM_Period = 10 * SystemCoreClock / 1000000 - 1;
+    TIM_TimeBaseStructure.TIM_Prescaler = 10000 - 1;
+    TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV4;
     TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+//    TIM_TimeBaseStructure.TIM_RepetitionCounter = 1000;
     TIM_TimeBaseInit(TIM3, &TIM_TimeBaseStructure);
     TIM_ITConfig(TIM3, TIM_IT_Update, ENABLE);
 
     TIM_Cmd(TIM3, ENABLE);
     TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
+
+    RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE);
+
+    TIM_TimeBaseStructure.TIM_Prescaler = 144 - 1;
+    TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
+    TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+
+    TIM_TimeBaseInit(TIM4, &TIM_TimeBaseStructure);
+    TIM_Cmd(TIM4, ENABLE);
+
 }
 
-bool flagSendFdk = 0;
-bool flagSetHeterodine = 0;
+uint32_t numpCounterRes;
+volatile uint32_t numpCounter = 0;
+
+volatile uint32_t vziLenght[6];
+
+RecievedFrameData recievedFrameDataSaved;
+
+volatile bool flagSendFdk = 0;
+volatile bool flagSendRdy = 1;
+volatile bool flagSetHeterodine = 0;
 int main(void)
 {
 	SystemCoreClockUpdate();
 	Delay_Init();
 	USART_Printf_Init(115200);
 
+    LFM_Init();
+    HET_Init();
+
+    PIN_Init();
+
+    CommFIFO_Init();
+
     printf("UDP client. Recieving control frames for FSGP\r\n");
     printf("SystemClk: %d\r\n",SystemCoreClock);
     printf("ChipID: %08x\r\n", DBGMCU_GetCHIPID());
 
-    Delay_Ms(1000);
+    Delay_Ms(10000);
 
-	CommFIFO_Init();
-
-	LFM_Init();
-	HET_Init();
-
-	PIN_Init();
+	LFM_WriteStartupData();
 	ETHERNET_Init();
 
-    TIM3_Init();
+    TIM_Init();
     INT_Init();
 
     NVIC_SetPriority(TIM3_IRQn,     (4<<5) | (0x01<<4));/* Group priority 3, lower overall priority */
     NVIC_SetPriority(ETH_IRQn,      (3<<5) | (0x01<<4));
-    //NVIC_SetPriority(EXTI15_10_IRQn,(2<<5) | (0x01<<4));
     NVIC_SetPriority(EXTI0_IRQn,    (0<<5) | (0x01<<4));
-    //NVIC_SetPriority(SPI3_IRQn,     (1<<5) | (0x01<<4));/* Group priority 0, overall priority is higher */
 
     printf("NVIC priorities SPI3: %x, EXTI: %x, ETH: %x, TIM3: %x\r\n",
             NVIC->IPRIOR[SPI3_IRQn], NVIC->IPRIOR[EXTI0_IRQn], NVIC->IPRIOR[ETH_IRQn], NVIC->IPRIOR[TIM3_IRQn]);
@@ -177,81 +205,102 @@ int main(void)
     {
         ETHDRV_MainTask();
 
-        if(flagSendFdk)
-        {
-            ETHERNET_SendFdkFrame();
-            flagSendFdk = 0;
-        }
-
         if(flagSetHeterodine && CommFIFO_Count()>0)
         {
-            HET_SetHeterodine(CommFIFO_PeekData().NKCH);
+            HET_SetHeterodine(CommFIFO_PeekData().rcvdFrame.NKCH);
             flagSetHeterodine = 0;
         }
 
-        if(recievedFrameData.frameLength>0)
-        {
-            NVIC_DisableIRQ(TIM3_IRQn);
+        if(EthFIFO_Count()>0){
+            RecievedDataPtr_t* data = EthFIFO_GetData();
 
-            RecievedFrameData recievedFrameDataSaved;
-            memcpy(&recievedFrameDataSaved, &recievedFrameData, recievedFrameData.frameLength);
-
-            uint16_t frameType = recievedFrameDataSaved.frameData[POS_FRAME_TYPE_HW]<<8 | recievedFrameDataSaved.frameData[POS_FRAME_TYPE_LW];
-            uint8_t ipProtocolType = recievedFrameDataSaved.frameData[POS_PROTOCOL];
-
-            switch(frameType)
+            if(data->frameLength>0)
             {
-                case FRAME_TYPE_ARP:
-                {
-                    ETHERNET_ParseArpFrame(&recievedFrameDataSaved);
-                    break;
-                }
+                uint16_t frameLength = data->frameLength;
 
-                case FRAME_TYPE_IPv4:
+                if(frameLength > RECIEVED_FRAME_BUFFER_SIZE) frameLength = RECIEVED_FRAME_BUFFER_SIZE;
+
+                memcpy(&recievedFrameDataSaved, data->bufferPtr, frameLength);
+                recievedFrameDataSaved.frameLength = frameLength;
+
+                uint16_t frameType = recievedFrameDataSaved.frameData[POS_FRAME_TYPE_HW]<<8 | recievedFrameDataSaved.frameData[POS_FRAME_TYPE_LW];
+                uint8_t ipProtocolType = recievedFrameDataSaved.frameData[POS_PROTOCOL];
+
+                switch(frameType)
                 {
-                    switch(ipProtocolType)
+                    case FRAME_TYPE_ARP:
                     {
-                    case IPv4_PROTOCOL_UDP: ETHERNET_ParseUdpFrame(&recievedFrameDataSaved); break;
-                    case IPv4_PROTOCOL_ICMP: ETHERNET_ParseIcmpFrame(&recievedFrameDataSaved); break;
+                        ETHERNET_ParseArpFrame(&recievedFrameDataSaved);
+                        break;
                     }
-                    break;
+
+                    case FRAME_TYPE_IPv4:
+                    {
+                        switch(ipProtocolType)
+                        {
+                        case IPv4_PROTOCOL_UDP: ETHERNET_ParseUdpFrame(&recievedFrameDataSaved); break;
+                        case IPv4_PROTOCOL_ICMP: ETHERNET_ParseIcmpFrame(&recievedFrameDataSaved); break;
+                        }
+                        break;
+                    }
                 }
             }
-            recievedFrameData.frameLength = 0;
-            NVIC_EnableIRQ(TIM3_IRQn);
+        }
+
+        if(flagSendFdk)
+        {
+            ETHERNET_SendFdkFrame();
+
+            isRecievingControlFrames = 0;
+            flagSendFdk = 0;
+        }
+
+        if(flagSendRdy)
+        {
+            ETHERNET_SendRdyFrame();
+            isRecievingControlFrames = 0;
+            flagSendRdy = 0;
         }
 	}
 }
 
 // IRQ handlers ======================
+uint16_t repCounter = 0;
 void TIM3_IRQHandler()
 {
-    flagSendFdk = 1;
+    repCounter++;
+
+    if(repCounter == 5){
+        flagSendRdy = 1;
+    }
+
+    if(repCounter == 10){
+        flagSendFdk = 1;
+        repCounter = 0;
+    }
 
     TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
 }
 
-//bool toogle = 0;
 void EXTI0_IRQHandler(void)
 {
-    FSGP_Command_Frame* actualComm = CommFIFO_GetData();
+    EXTI_ClearITPendingBit(EXTI_Line0);
+
+    actualComm = CommFIFO_GetData();
 
     if(actualComm)
     {
-        LFM_SetPack(actualComm->KP);
 
-        HET_UpdateIO();
-        flagSetHeterodine = 1;
+        HET_SetFilters(actualComm->rcvdFrame.NKCH);
 
-        HET_SetFilters(actualComm->NKCH);
 
         // зг3здзв03
-        if(actualComm->NKCH < 36)
+        if(actualComm->rcvdFrame.NKCH < 36)
         {
             GPIO_SetBits(pinVC1.port, pinVC1.pin);
             GPIO_SetBits(pinVC2.port, pinVC2.pin);
         }
-        else if(actualComm->NKCH >= 36 && actualComm->NKCH < 51)
+        else if(actualComm->rcvdFrame.NKCH >= 36 && actualComm->rcvdFrame.NKCH < 51)
         {
             GPIO_ResetBits(pinVC1.port, pinVC1.pin);
             GPIO_SetBits(pinVC2.port, pinVC2.pin);
@@ -262,9 +311,9 @@ void EXTI0_IRQHandler(void)
             GPIO_ResetBits(pinVC2.port, pinVC2.pin);
         }
 
+        GPIO_WriteBit(pinComPCH.port, pinComPCH.pin, actualComm->rcvdFrame.ComPCH);
 
-
-        switch(actualComm->TipPS)
+        switch(actualComm->rcvdFrame.TipPS)
         {
         case PS_OFF:
         {
@@ -282,7 +331,7 @@ void EXTI0_IRQHandler(void)
             GPIO_ResetBits(pinVgNeg2.port, pinVgNeg2.pin);
             break;
         }
-        case PS_HUM:
+        case PS_NOISE:
         {
             GPIO_ResetBits(pinHumOn.port, pinHumOn.pin);
             GPIO_ResetBits(pinHumSW.port, pinHumSW.pin);
@@ -290,7 +339,7 @@ void EXTI0_IRQHandler(void)
             GPIO_ResetBits(pinVgNeg2.port, pinVgNeg2.pin);
             break;
         }
-        case PS_LCM:
+        case PS_LFM:
         {
             GPIO_SetBits(pinHumOn.port, pinHumOn.pin);
             GPIO_SetBits(pinHumSW.port, pinHumSW.pin);
@@ -299,9 +348,12 @@ void EXTI0_IRQHandler(void)
             break;
         }
         }
+
+        LFM_SetPack(&actualComm->ddsData);
+
+        HET_UpdateIO();
+        flagSetHeterodine = 1;
+
+        actualComm = 0;
     }
-
-//    printf("used nk4:%d\r\n", actualComm->NKCH);
-
-    EXTI_ClearITPendingBit(EXTI_Line0);
 }

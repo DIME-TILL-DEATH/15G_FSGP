@@ -2,6 +2,11 @@
 
 #include "ethernet.h"
 
+#include "control_pin.h"
+
+#include "command_fifo.h"
+#include "frame_parser.h"
+
 #include "veeprom.h"
 #include "frame_parser.h"
 
@@ -11,21 +16,34 @@
 
 #define UDP_REC_BUF_LEN                1472
 uint8_t MACAddr[6];                                              //MAC address
-//uint8_t IPAddr[4] = {192, 168, 104, 10};                         //IP address
 uint8_t IPAddr[4] = {10, 0, 0, 121};                         //IP address
 
-uint8_t mstMACAddr[6] = {0};
-uint8_t mstIPAddr[4] = {0};
+uint8_t mcdoMACAddr[6] = {0}; //{0x00, 0xC0, 0x88, 0x02, 0x75, 0x7D}; //{0};
+uint8_t mcdoIPAddr[4] = {10, 0, 0, 111}; //{10, 0, 1, 102};
 
-uint8_t GWIPAddr[4] = {192, 168, 104, 255};                        //Gateway IP address
+uint8_t bosMACAddr[6] = {0};
+uint8_t bosIPAddr[4] = {10, 0, 0, 101};
+
+uint8_t terminalMACAddr[6] = {0};
+uint8_t terminalIPAddr[4] = {10, 0, 1, 102};
+
+uint8_t GWIPAddr[4] = {10, 0, 0, 255};                        //Gateway IP address
 uint8_t IPMask[4] = {255, 255, 255, 0};                        //subnet mask
 
-uint16_t dstPort = 40003;                                         //destination ports
-uint16_t fdkDstPort = 40002;
-uint16_t srcPort = 40003;                                         //source port
-uint16_t ackPort = 40004;
+uint16_t ctrlSrcPort = 21003;
+uint16_t ackSrcPort = 21004;
+uint16_t fdkSrcPort = 21016;
+uint16_t rdySrcPort = 21017;
+uint16_t techSrcPort = 21145;
 
-UDPFrame fdkFrameHeader;
+uint16_t ctrlDstPort = 20003;
+uint16_t ackDstPort = 20004;
+uint16_t fdkDstPort = 20016;
+uint16_t rdyDstPort = 20017;
+uint16_t techDstPort = 20145;
+
+bool isRecievingControlFrames = 0;
+
 
 // service functions:
 /* Compute checksum for count bytes starting at addr, using one's complement of one's complement sum*/
@@ -128,8 +146,6 @@ void ETHERNET_ParseArpFrame(const RecievedFrameData* frame)
 
     memcpy(parsedFrame.rawData, frame, ARP_FULL_HEADER_SIZE);
 
-//    printf("recieved ARP\r\n");
-
     if(compareArrays(parsedFrame.structData.targetIpAdr, IPAddr, 4))
     {
         if(parsedFrame.structData.opCode == __builtin_bswap16(ARP_OPCODE_REQUEST))
@@ -148,6 +164,25 @@ void ETHERNET_ParseArpFrame(const RecievedFrameData* frame)
             memcpy(answerFrame.structData.senderHwAdr, MACAddr, 6);
 
             ETH_TxPktChainMode(ARP_FULL_HEADER_SIZE, answerFrame.rawData);
+            return;
+        }
+
+        if(parsedFrame.structData.opCode == __builtin_bswap16(ARP_OPCODE_REPLY)){
+
+            if(compareArrays(parsedFrame.structData.senderIpAdr, mcdoIPAddr, 4)){
+                printf("MCDO arp reply\r\n");
+                memcpy(mcdoMACAddr, parsedFrame.structData.senderHwAdr, 6);
+            }
+
+            if(compareArrays(parsedFrame.structData.senderIpAdr, bosIPAddr, 4)){
+                printf("BOS arp reply\r\n");
+                memcpy(bosMACAddr, parsedFrame.structData.senderHwAdr, 6);
+            }
+
+            if(compareArrays(parsedFrame.structData.senderIpAdr, terminalIPAddr, 4)){
+                printf("Terminal arp reply\r\n");
+                memcpy(terminalMACAddr, parsedFrame.structData.senderHwAdr, 6);
+            }
         }
     }
 }
@@ -206,13 +241,12 @@ void ETHERNET_ParseUdpFrame(const RecievedFrameData* frame)
     {
         answerFrameHeader = parsedFrameHeader;
 
-        memcpy(mstMACAddr, parsedFrameHeader.structData.srcMAC, 6);
-        memcpy(mstIPAddr, parsedFrameHeader.structData.srcIpAddress, 4);
-
         uint8_t answer[512];
         uint32_t outDataLen;
 
         memset(answer, 0, 512);
+
+        // check port
 
         parseFrame(&(frame->frameData[UDP_PAYLOAD_POSITION]), __builtin_bswap16(parsedFrameHeader.structData.udpLength) - UDP_ONLY_HEADER_SIZE,
                 &(answer[UDP_PAYLOAD_POSITION]),
@@ -220,19 +254,20 @@ void ETHERNET_ParseUdpFrame(const RecievedFrameData* frame)
 
         if(outDataLen > 0)
         {
+            isRecievingControlFrames = 1;
+
             uint16_t totalAnswerLen = UDP_FULL_HEADER_SIZE + outDataLen;
 
             memcpy(answerFrameHeader.structData.srcMAC, MACAddr, 6);
-            memcpy(answerFrameHeader.structData.dstMAC, parsedFrameHeader.structData.srcMAC, 6);
+            memcpy(answerFrameHeader.structData.dstMAC, mcdoMACAddr, 6);
 
             answerFrameHeader.structData.ipTotalLength = __builtin_bswap16(totalAnswerLen - ETHERNETII_HEADER_SIZE);
 
             memcpy(answerFrameHeader.structData.srcIpAddress, IPAddr, 4);
-            memcpy(answerFrameHeader.structData.dstIpAddress, parsedFrameHeader.structData.srcIpAddress, 4);
+            memcpy(answerFrameHeader.structData.dstIpAddress, mcdoIPAddr, 4);
 
-            answerFrameHeader.structData.srcPort = __builtin_bswap16(srcPort);
-//            answerFrameHeader.structData.dstPort = parsedFrameHeader.structData.srcPort;
-            answerFrameHeader.structData.dstPort = __builtin_bswap16(ackPort);
+            answerFrameHeader.structData.srcPort = __builtin_bswap16(ackSrcPort);
+            answerFrameHeader.structData.dstPort = __builtin_bswap16(ackDstPort);
 
             answerFrameHeader.structData.udpLength = __builtin_bswap16(outDataLen + UDP_ONLY_HEADER_SIZE);
 
@@ -248,45 +283,52 @@ void ETHERNET_ParseUdpFrame(const RecievedFrameData* frame)
 
             memcpy(answer, answerFrameHeader.rawData, UDP_FULL_HEADER_SIZE);
 
-            ETH_TxPktChainMode(totalAnswerLen, answer);
-
-            //===========================================================
-//            uint8_t macDst[] = {0x90, 0xe2, 0xba, 0xca, 0xac, 0x58};
-//            memcpy(answerFrameHeader.structData.dstMAC, macDst, 6);
-//            uint8_t ipDst[] = {10, 0, 0, 5};
-//            memcpy(answerFrameHeader.structData.dstIpAddress, ipDst, 4);
-//
-//            memcpy(answer, answerFrameHeader.rawData, UDP_FULL_HEADER_SIZE);
-//            ETH_TxPktChainMode(totalAnswerLen, answer);
-
-            if(framesCounter == 255) framesCounter = 0;
-            else framesCounter++;
-        }
-        else
-        {
-//            printf("buf overflow\r\n");
+            while(!ETH_TxPktChainMode(totalAnswerLen, answer));
         }
     }
+}
+
+void ETHERNET_SendArpRequest(uint8_t requestIpAdr[4]){
+    ARPFrame arpFrame;
+
+    memset(arpFrame.structData.dstMAC, 0xFF, 6); // broadcast
+    memcpy(arpFrame.structData.srcMAC, MACAddr, 6);
+
+    arpFrame.structData.frameType = __builtin_bswap16(0x0806);
+
+    arpFrame.structData.hardwareType = __builtin_bswap16(0x0001);
+    arpFrame.structData.protocolType = __builtin_bswap16(0x0800);
+    arpFrame.structData.hardwareSize = 6;
+    arpFrame.structData.protocolSize = 4;
+
+    arpFrame.structData.opCode = __builtin_bswap16(ARP_OPCODE_REQUEST);
+
+    memcpy(arpFrame.structData.targetIpAdr, requestIpAdr, 4);
+    memcpy(arpFrame.structData.senderIpAdr, IPAddr, 4);
+
+    memset(arpFrame.structData.targetHwAdr, 0x00, 6);
+    memcpy(arpFrame.structData.senderHwAdr, MACAddr, 6);
+
+    while(!ETH_TxPktChainMode(ARP_FULL_HEADER_SIZE, arpFrame.rawData));
 }
 
 void ETHERNET_SendFdkFrame()
 {
     uint8_t dummyMACAddr[6] = {0};
 
-    if(!compareArrays(mstMACAddr, dummyMACAddr, 6))
+    if(!compareArrays(bosMACAddr, dummyMACAddr, 6))
     {
-        uint8_t rawFdkFrame[512] = {0};
-        uint16_t payloadLen;
+        UDPFrame fdkFrameHeader;
 
-        getFdkPayload(&(rawFdkFrame[UDP_PAYLOAD_POSITION]), &payloadLen);
+        uint8_t rawFdkFrame[512] = {0};
+        uint16_t payloadLen = 0;
+
+        getFdkFramePayload(&(rawFdkFrame[UDP_PAYLOAD_POSITION]), &payloadLen);
 
         uint16_t totalAnswerLen = UDP_FULL_HEADER_SIZE+payloadLen;
 
         memcpy(fdkFrameHeader.structData.srcMAC, MACAddr, 6);
-        memcpy(fdkFrameHeader.structData.dstMAC, mstMACAddr, 6);
-        //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-//        uint8_t macDst[] = {0x90, 0xe2, 0xba, 0xca, 0xac, 0x58};
-//        memcpy(fdkFrameHeader.structData.dstMAC, macDst, 6);
+        memcpy(fdkFrameHeader.structData.dstMAC, bosMACAddr, 6);
 
         fdkFrameHeader.structData.frameType = __builtin_bswap16(FRAME_TYPE_IPv4);
         fdkFrameHeader.structData.ipVerHdrLen = 0x45;
@@ -302,12 +344,9 @@ void ETHERNET_SendFdkFrame()
         fdkFrameHeader.structData.protocol = IPv4_PROTOCOL_UDP;
 
         memcpy(fdkFrameHeader.structData.srcIpAddress, IPAddr, 4);
-        memcpy(fdkFrameHeader.structData.dstIpAddress, mstIPAddr, 4);
-        //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-//        uint8_t ipDst[] = {10, 0, 0, 5};
-//        memcpy(fdkFrameHeader.structData.dstIpAddress, ipDst, 4);
+        memcpy(fdkFrameHeader.structData.dstIpAddress, bosIPAddr, 4);
 
-        fdkFrameHeader.structData.srcPort = __builtin_bswap16(srcPort);
+        fdkFrameHeader.structData.srcPort = __builtin_bswap16(fdkSrcPort);
         fdkFrameHeader.structData.dstPort = __builtin_bswap16(fdkDstPort);
 
         fdkFrameHeader.structData.udpLength = __builtin_bswap16(payloadLen + UDP_ONLY_HEADER_SIZE);
@@ -320,9 +359,65 @@ void ETHERNET_SendFdkFrame()
 
         memcpy(rawFdkFrame, fdkFrameHeader.rawData, UDP_FULL_HEADER_SIZE);
 
-        ETH_TxPktChainMode(totalAnswerLen, rawFdkFrame);
 
-        if(framesCounter == 255) framesCounter = 0;
-        else framesCounter++;
+        ETH_TxPktChainMode(totalAnswerLen, rawFdkFrame);
+    }
+    else
+    {
+        ETHERNET_SendArpRequest(bosIPAddr);
+    }
+}
+
+void ETHERNET_SendRdyFrame()
+{
+    uint8_t dummyMACAddr[6] = {0};
+
+    if(!compareArrays(mcdoMACAddr, dummyMACAddr, 6))
+    {
+        UDPFrame rdyFrameHeader;
+
+        uint8_t rawRdyFrame[512] = {0};
+        uint16_t payloadLen;
+
+        getRdyFramePayload(&(rawRdyFrame[UDP_PAYLOAD_POSITION]), &payloadLen);
+
+        uint16_t totalAnswerLen = UDP_FULL_HEADER_SIZE+payloadLen;
+
+        memcpy(rdyFrameHeader.structData.srcMAC, MACAddr, 6);
+        memcpy(rdyFrameHeader.structData.dstMAC, mcdoMACAddr, 6);
+
+        rdyFrameHeader.structData.frameType = __builtin_bswap16(FRAME_TYPE_IPv4);
+        rdyFrameHeader.structData.ipVerHdrLen = 0x45;
+        rdyFrameHeader.structData.diffServicesField = 0x00;
+
+        rdyFrameHeader.structData.ipTotalLength = __builtin_bswap16(totalAnswerLen - ETHERNETII_HEADER_SIZE);
+
+        rdyFrameHeader.structData.identification = 0x0000;
+
+        rdyFrameHeader.structData.fragmentFlagsAndOffset = 0x40; // not fragmented
+
+        rdyFrameHeader.structData.ttl = 0xFF;
+        rdyFrameHeader.structData.protocol = IPv4_PROTOCOL_UDP;
+
+        memcpy(rdyFrameHeader.structData.srcIpAddress, IPAddr, 4);
+        memcpy(rdyFrameHeader.structData.dstIpAddress, mcdoIPAddr, 4);
+
+        rdyFrameHeader.structData.srcPort = __builtin_bswap16(rdySrcPort);
+        rdyFrameHeader.structData.dstPort = __builtin_bswap16(rdyDstPort);
+
+        rdyFrameHeader.structData.udpLength = __builtin_bswap16(payloadLen + UDP_ONLY_HEADER_SIZE);
+
+        rdyFrameHeader.structData.checksum = 0;
+        uint16_t checkSumIp = computeIpChecksum(&(rdyFrameHeader.rawData[ETHERNETII_HEADER_SIZE]), IP_HEADER_SIZE);
+        rdyFrameHeader.structData.checksum = __builtin_bswap16(checkSumIp);
+
+        rdyFrameHeader.structData.udpCheckSum = 0;
+
+        memcpy(rawRdyFrame, rdyFrameHeader.rawData, UDP_FULL_HEADER_SIZE);
+
+        ETH_TxPktChainMode(totalAnswerLen, rawRdyFrame);
+    }
+    else {
+        ETHERNET_SendArpRequest(mcdoIPAddr);
     }
 }
