@@ -35,6 +35,7 @@ ControlPin_t pinVC2;
 
 ControlPin_t pinComPCH;
 
+ControlPin_t pinLED;
 
 void PIN_Init()
 {
@@ -50,9 +51,17 @@ void PIN_Init()
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU; //GPIO_Mode_IN_FLOATING;
     GPIO_Init(GPIOA, &GPIO_InitStructure);
 
-    // HUM
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 
+    // LED
+    pinLED.pin = GPIO_Pin_4;
+    pinLED.port = GPIOA;
+
+    GPIO_InitStructure.GPIO_Pin = pinLED.pin;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+    GPIO_Init(pinLED.port, &GPIO_InitStructure);
+
+    // HUM
     pinHumSW.pin = GPIO_Pin_1; // FIlter pi actual!!!!
     pinHumSW.port = GPIOD;
 
@@ -169,10 +178,12 @@ int main(void)
 	Delay_Init();
 	USART_Printf_Init(115200);
 
+    PIN_Init();
+
+    GPIO_ResetBits(pinLED.port, pinLED.pin);
+
     LFM_Init();
     HET_Init();
-
-    PIN_Init();
 
     CommFIFO_Init();
 
@@ -200,6 +211,8 @@ int main(void)
     NVIC_EnableIRQ(TIM3_IRQn);
 
     Delay_Ms(2000);
+
+    GPIO_SetBits(pinLED.port, pinLED.pin);
 
 	while(1)
     {
