@@ -214,6 +214,9 @@ int main(void)
 
     GPIO_SetBits(pinLED.port, pinLED.pin);
 
+    // HET_SetHeterodine(50);
+    // HET_UpdateIO();
+
 	while(1)
     {
         ETHDRV_MainTask();

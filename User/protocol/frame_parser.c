@@ -119,10 +119,10 @@ void parseFrame(const uint8_t* inData, uint32_t inDataLen, uint8_t* outData, uin
         case FSGP_SIGNAL_PARAMS_FRAME:
         {
 
-            FSGP_Signal_Params_Frame *paramsFrame_ptr = (FSGP_Signal_Params_Frame *)&(inData[COMMAND_DATA_POS]);
+            // FSGP_Signal_Params_Frame *paramsFrame_ptr = (FSGP_Signal_Params_Frame *)&(inData[COMMAND_DATA_POS]);
 
-            int16_t speedMS = __builtin_bswap16(paramsFrame_ptr->speed);
-            uint16_t delay = __builtin_bswap16(paramsFrame_ptr->delay);
+            // int16_t speedMS = __builtin_bswap16(paramsFrame_ptr->speed);
+            // uint16_t delay = __builtin_bswap16(paramsFrame_ptr->delay);
 
 //            printf("recieved signal description frame, speed: %d, delay: %d\r\n", speedMS, delay);
 
