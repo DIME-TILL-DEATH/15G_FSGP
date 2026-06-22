@@ -335,32 +335,32 @@ void EXTI0_IRQHandler(void)
         {
             GPIO_SetBits(pinHumOn.port, pinHumOn.pin);
             GPIO_SetBits(pinHumSW.port, pinHumSW.pin);
-            GPIO_ResetBits(pinVgNeg1.port, pinVgNeg1.pin);
-            GPIO_SetBits(pinVgNeg2.port, pinVgNeg2.pin);
+            GPIO_SetBits(pinVgNeg1.port, pinVgNeg1.pin);
+            GPIO_ResetBits(pinVgNeg2.port, pinVgNeg2.pin);
             break;
         }
         case PS_SIN:
         {
             GPIO_SetBits(pinHumOn.port, pinHumOn.pin);
             GPIO_SetBits(pinHumSW.port, pinHumSW.pin);
-            GPIO_SetBits(pinVgNeg1.port, pinVgNeg1.pin);
-            GPIO_ResetBits(pinVgNeg2.port, pinVgNeg2.pin);
+            GPIO_ResetBits(pinVgNeg1.port, pinVgNeg1.pin);
+            GPIO_SetBits(pinVgNeg2.port, pinVgNeg2.pin);
             break;
         }
         case PS_NOISE:
         {
             GPIO_ResetBits(pinHumOn.port, pinHumOn.pin);
             GPIO_ResetBits(pinHumSW.port, pinHumSW.pin);
-            GPIO_SetBits(pinVgNeg1.port, pinVgNeg1.pin);
-            GPIO_ResetBits(pinVgNeg2.port, pinVgNeg2.pin);
+            GPIO_ResetBits(pinVgNeg1.port, pinVgNeg1.pin);
+            GPIO_SetBits(pinVgNeg2.port, pinVgNeg2.pin);
             break;
         }
         case PS_LFM:
         {
             GPIO_SetBits(pinHumOn.port, pinHumOn.pin);
             GPIO_SetBits(pinHumSW.port, pinHumSW.pin);
-            GPIO_SetBits(pinVgNeg1.port, pinVgNeg1.pin);
-            GPIO_ResetBits(pinVgNeg2.port, pinVgNeg2.pin);
+            GPIO_ResetBits(pinVgNeg1.port, pinVgNeg1.pin);
+            GPIO_SetBits(pinVgNeg2.port, pinVgNeg2.pin);
             break;
         }
         }
