@@ -210,8 +210,7 @@ void SPIHET_UnlockPins()
 
 void SPIHET_ProcessSpiFifo()
 {
-
-    if(SPI_I2S_GetFlagStatus(SPI3, SPI_I2S_FLAG_BSY) == SET) return; // SPI processing data
+    while(SPI_I2S_GetFlagStatus(SPI3, SPI_I2S_FLAG_BSY) == SET); // SPI processing data
 
     if(SPIHET_CommCount() > 0)
     {
@@ -226,6 +225,8 @@ void SPIHET_ProcessSpiFifo()
 
 void SPIHET_SendSpiData(SPIHET_SendData_t* data_ptr)
 {
+    while(SPI_I2S_GetFlagStatus(SPI3, SPI_I2S_FLAG_BSY) == SET); // SPI processing data
+    
     SPIHET_LockPins();
 
     switch(data_ptr->channel)

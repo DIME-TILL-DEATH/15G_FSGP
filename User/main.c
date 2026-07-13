@@ -172,6 +172,7 @@ RecievedFrameData recievedFrameDataSaved;
 volatile bool flagSendFdk = 0;
 volatile bool flagSendRdy = 1;
 volatile bool flagSetHeterodine = 0;
+bool firstRun = true;
 int main(void)
 {
 	SystemCoreClockUpdate();
@@ -214,8 +215,35 @@ int main(void)
 
     GPIO_SetBits(pinLED.port, pinLED.pin);
 
+    flagSetHeterodine = true;
+
+    FSGP_Command_Frame startComm;
+    memset(&startComm, 0, sizeof(FSGP_Command_Frame));
+
+    FSGP_Command_Data startData;
+    memset(&startData, 0, sizeof(FSGP_Command_Data));
+    startData.rcvdFrame.NKCH = 50;
+    startData.rcvdFrame.TipPS = PS_OFF;
+    startData.ddsData = LFM_GetPackData(&startComm);
+    CommFIFO_PutData(startData);
+
+    // HET_SetFilters(50);
     // HET_SetHeterodine(50);
+
+    // Delay_Ms(1000);
+
+    // GPIO_ResetBits(pinVC1.port, pinVC1.pin);
+    // GPIO_SetBits(pinVC2.port, pinVC2.pin);
+
+    // GPIO_SetBits(pinHumOn.port, pinHumOn.pin);
+    // GPIO_SetBits(pinHumSW.port, pinHumSW.pin);
+    // GPIO_SetBits(pinVgNeg1.port, pinVgNeg1.pin);
+    // GPIO_ResetBits(pinVgNeg2.port, pinVgNeg2.pin);
+
     // HET_UpdateIO();
+
+
+    // NVIC_SetPendingIRQ(EXTI0_IRQn);
 
 	while(1)
     {
